@@ -24,11 +24,11 @@ export function formatLoopError(
     return t("errors.contextOverflow", { requested });
   }
 
-  const m = /^DeepSeek (\d{3}):\s*([\s\S]*)$/.exec(msg);
+  const m = UPSTREAM_ERROR_RE.exec(msg);
   if (!m) return msg;
   const status = m[1] ?? "";
   const body = m[2] ?? "";
-  const inner = extractDeepSeekErrorMessage(body);
+  const inner = extractUpstreamErrorMessage(body);
 
   if (status === "401") return t("errors.auth401", { inner });
   if (status === "402") return t("errors.balance402", { inner });
@@ -41,9 +41,13 @@ export function formatLoopError(
 
 export function is5xxError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
-  const m = /^DeepSeek (5\d{2}):/.exec(err.message ?? "");
-  return m !== null;
+  return UPSTREAM_5XX_RE.test(err.message ?? "");
 }
+
+/** Matches the `<Provider> <status>:` prefix every LLMClient throws.
+ *  DeepSeekClient + OpenRouterClient share the format. */
+const UPSTREAM_ERROR_RE = /^(?:DeepSeek|OpenRouter) (\d{3}):\s*([\s\S]*)$/;
+const UPSTREAM_5XX_RE = /^(?:DeepSeek|OpenRouter) (5\d{2}):/;
 
 export async function probeDeepSeekReachable(
   client: LLMClient,
@@ -118,7 +122,7 @@ export function errorLabelFor(reason: "aborted" | "context-guard" | "stuck"): st
   return t("errors.labelStuck");
 }
 
-function extractDeepSeekErrorMessage(body: string): string {
+function extractUpstreamErrorMessage(body: string): string {
   const trimmed = body.trim();
   if (!trimmed) return t("errors.innerNoMessage");
   try {

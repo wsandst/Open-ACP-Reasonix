@@ -154,6 +154,28 @@ describe("formatLoopError", () => {
     expect(out).toMatch(/DeepSeek-side problem/);
     expect(out).toContain("status.deepseek.com");
   });
+
+  it("recognizes the OpenRouter <status>: prefix the same way as DeepSeek's", () => {
+    const auth = formatLoopError(new Error('OpenRouter 401: {"error":{"message":"no auth"}}'));
+    expect(auth).toMatch(/Authentication failed/);
+    expect(auth).toContain("no auth");
+
+    const bad = formatLoopError(
+      new Error('OpenRouter 400: {"error":{"message":"bad model name"}}'),
+    );
+    expect(bad).toMatch(/Bad request/);
+    expect(bad).toContain("bad model name");
+  });
+
+  it("OpenRouter 5xx → generic upstream wording (no DS-specific lines)", () => {
+    const out = formatLoopError(new Error("OpenRouter 503: "), undefined, {
+      upstreamHost: "https://openrouter.ai/api/v1",
+    });
+    expect(out).toMatch(/Upstream service unavailable \(503\)/);
+    expect(out).toContain("openrouter.ai");
+    expect(out).not.toMatch(/DeepSeek-side problem/);
+    expect(out).not.toContain("status.deepseek.com");
+  });
 });
 
 describe("healLoadedMessagesByTokens", () => {
