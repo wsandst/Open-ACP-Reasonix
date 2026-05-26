@@ -7,6 +7,7 @@ import {
   HISTORY_FOLD_THRESHOLD,
 } from "../src/context-manager.js";
 import { type ConfirmationChoice, PauseGate } from "../src/core/pause-gate.js";
+import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 import { CacheFirstLoop } from "../src/loop.js";
 import { ImmutablePrefix } from "../src/memory/runtime.js";
 import { DEEPSEEK_CONTEXT_TOKENS } from "../src/telemetry/stats.js";
@@ -1036,9 +1037,9 @@ describe("CacheFirstLoop - configure() method", () => {
       prefix: new ImmutablePrefix({ system: "s" }),
       stream: false,
     });
-    expect(loop.model).toBe("deepseek-v4-flash");
-    loop.configure({ model: "deepseek-v4-pro" });
-    expect(loop.model).toBe("deepseek-v4-pro");
+    expect(loop.model).toBe(DEFAULT_MODEL_FLASH);
+    loop.configure({ model: DEFAULT_MODEL_PRO });
+    expect(loop.model).toBe(DEFAULT_MODEL_PRO);
   });
 
   it("updates stream preference via configure", () => {

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CODE_SYSTEM_PROMPT, codeSystemPrompt } from "../src/code/prompt.js";
+import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 import { ImmutablePrefix } from "../src/memory/runtime.js";
 
 describe("codeSystemPrompt", () => {
@@ -142,16 +143,16 @@ describe("codeSystemPrompt", () => {
   describe("modelId interpolation (#582)", () => {
     it("defaults to flash when modelId is omitted (back-compat)", () => {
       const out = codeSystemPrompt(root);
-      expect(out).toContain("`deepseek-v4-flash`");
-      expect(out).toContain("If asked which model you are, answer `deepseek-v4-flash`");
+      expect(out).toContain(`\`${DEFAULT_MODEL_FLASH}\``);
+      expect(out).toContain(`If asked which model you are, answer \`${DEFAULT_MODEL_FLASH}\``);
     });
 
     it("interpolates the supplied modelId into the escalation contract", () => {
-      const out = codeSystemPrompt(root, { modelId: "deepseek-v4-pro" });
-      expect(out).toContain("`deepseek-v4-pro`");
+      const out = codeSystemPrompt(root, { modelId: DEFAULT_MODEL_PRO });
+      expect(out).toContain(`\`${DEFAULT_MODEL_PRO}\``);
       expect(out).toContain("escalation tier");
-      expect(out).toContain("If asked which model you are, answer `deepseek-v4-pro`");
-      expect(out).not.toMatch(/running on `?deepseek-v4-flash`?/);
+      expect(out).toContain(`If asked which model you are, answer \`${DEFAULT_MODEL_PRO}\``);
+      expect(out).not.toMatch(new RegExp(`running on \`?${DEFAULT_MODEL_FLASH}\`?`));
     });
   });
 

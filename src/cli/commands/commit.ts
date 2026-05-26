@@ -8,17 +8,18 @@ import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import type { LLMClient } from "../../client.js";
 import { loadEndpoint } from "../../config.js";
+import { DEFAULT_MODEL_FLASH } from "../../defaults.js";
 import { loadDotenv } from "../../env.js";
 import { createLLMClient } from "../../llm-factory.js";
 
 export interface CommitOptions {
-  /** Override the default model (deepseek-v4-flash). */
+  /** Override the default model. */
   model?: string;
   /** Skip the confirmation step — useful in scripts where the diff has been pre-reviewed. */
   yes?: boolean;
 }
 
-const DEFAULT_MODEL = "deepseek-v4-flash";
+const DEFAULT_MODEL = DEFAULT_MODEL_FLASH;
 const DIFF_BYTE_CAP = 80 * 1024;
 const LOG_COUNT = 10;
 

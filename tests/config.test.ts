@@ -52,6 +52,7 @@ import {
   webSearchEngine,
   writeConfig,
 } from "../src/config.js";
+import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 
 describe("config", () => {
   let dir: string;
@@ -236,14 +237,12 @@ describe("config", () => {
   });
 
   it("loadModel falls back to default when persisted id is unsupported on the official endpoint", () => {
-    // Regression: v3-era `deepseek-chat`/`deepseek-reasoner` lingering in
-    // config — or any other unsupported id — would be sent verbatim and
-    // make the first chat request 400 with "supported API model names are
-    // deepseek-v4-pro or deepseek-v4-flash, but you passed …".
+    // Regression: stale id lingering in config would be sent verbatim and
+    // make the first chat request 400.
     writeConfig({ model: "deepseek-chat" }, path);
-    expect(loadModel(path)).toBe("deepseek-v4-flash");
-    writeConfig({ model: "deepseek-made-up" }, path);
-    expect(loadModel(path)).toBe("deepseek-v4-flash");
+    expect(loadModel(path)).toBe(DEFAULT_MODEL_FLASH);
+    writeConfig({ model: "openai/made-up" }, path);
+    expect(loadModel(path)).toBe(DEFAULT_MODEL_FLASH);
   });
 
   it("loadModel passes through any persisted id when a custom baseUrl is set", () => {
@@ -251,9 +250,9 @@ describe("config", () => {
     expect(loadModel(path)).toBe("my-self-hosted-7b");
   });
 
-  it("loadModel keeps a supported v4 id on the official endpoint", () => {
-    writeConfig({ model: "deepseek-v4-pro" }, path);
-    expect(loadModel(path)).toBe("deepseek-v4-pro");
+  it("loadModel keeps a supported id on the official endpoint", () => {
+    writeConfig({ model: DEFAULT_MODEL_PRO }, path);
+    expect(loadModel(path)).toBe(DEFAULT_MODEL_PRO);
   });
 
   it("loadEndpoint: env tuple wins when env sets baseUrl", () => {
@@ -416,7 +415,7 @@ describe("config", () => {
     writeConfig(
       {
         apiKey: "sk-test123abcdefghijkl",
-        model: "deepseek-v4-pro",
+        model: DEFAULT_MODEL_PRO,
         reasoningEffort: "medium",
         mcp: [
           "filesystem=npx -y @modelcontextprotocol/server-filesystem /tmp/safe",
@@ -428,7 +427,7 @@ describe("config", () => {
       path,
     );
     const loaded = readConfig(path);
-    expect(loaded.model).toBe("deepseek-v4-pro");
+    expect(loaded.model).toBe(DEFAULT_MODEL_PRO);
     expect(loaded.reasoningEffort).toBe("medium");
     expect(loaded.mcp).toHaveLength(2);
     expect(loaded.session).toBe("work");

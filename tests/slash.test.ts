@@ -153,7 +153,7 @@ describe("handleSlash", () => {
   it("/status reflects current loop config", () => {
     const loop = makeLoop();
     const r = handleSlash("status", [], loop);
-    expect(r.info).toMatch(/model\s+deepseek-/);
+    expect(r.info).toMatch(/model\s+\S+/);
     expect(r.info).toMatch(/effort=high/);
   });
 
@@ -875,7 +875,7 @@ describe("handleSlash", () => {
       mcpSpecs: ["filesystem=npx -y @scope/fs /tmp", "mem=npx -y @scope/mem"],
       pendingEditCount: 3,
     });
-    expect(r.info).toMatch(/model\s+deepseek-/);
+    expect(r.info).toMatch(/model\s+\S+/);
     // ctx row now includes a tiny [██░░░░] char bar between the label
     // and the count — match the count itself loosely.
     expect(r.info).toMatch(/ctx\s+\S+\s+\d+\.?\d*K?\/\d+K/);

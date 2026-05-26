@@ -1,14 +1,19 @@
 import type { Usage } from "../client.js";
 import { loadPricingOverride } from "../config.js";
 
-/** USD per 1M tokens; display currency conversion happens at the UI boundary. */
+/** USD per 1M tokens; display currency conversion happens at the UI boundary.
+ *  Used as the fallback table — `pricingFor()` prefers data fetched from the
+ *  active provider's /models endpoint (see src/telemetry/pricing-cache.ts). */
 export const DEEPSEEK_PRICING: Record<
   string,
   { inputCacheHit: number; inputCacheMiss: number; output: number }
 > = {
+  // OpenRouter defaults (current snapshot — overridden by live /models fetch).
+  "openai/gpt-4o-mini": { inputCacheHit: 0.075, inputCacheMiss: 0.15, output: 0.6 },
+  "openai/gpt-5": { inputCacheHit: 1.25, inputCacheMiss: 2.5, output: 10.0 },
+  // DeepSeek native (back-compat for users still pointing at api.deepseek.com).
   "deepseek-v4-flash": { inputCacheHit: 0.0028, inputCacheMiss: 0.14, output: 0.28 },
   "deepseek-v4-pro": { inputCacheHit: 0.003625, inputCacheMiss: 0.435, output: 0.87 },
-  // Compat aliases — priced as v4-flash per the deprecation notice.
   "deepseek-chat": { inputCacheHit: 0.0028, inputCacheMiss: 0.14, output: 0.28 },
   "deepseek-reasoner": { inputCacheHit: 0.0028, inputCacheMiss: 0.14, output: 0.28 },
 };
@@ -35,6 +40,8 @@ export const CLAUDE_SONNET_PRICING = { input: 3.0, output: 15.0 };
 
 /** Prompt-side window only; completion caps live server-side and don't affect this gauge. */
 export const DEEPSEEK_CONTEXT_TOKENS: Record<string, number> = {
+  "openai/gpt-4o-mini": 128_000,
+  "openai/gpt-5": 400_000,
   "deepseek-v4-flash": 1_000_000,
   "deepseek-v4-pro": 1_000_000,
   "deepseek-chat": 1_000_000,

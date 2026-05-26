@@ -1,6 +1,7 @@
 /** Agent-facing tools for scaffolding skills + MCP servers from chat. Persists via the same paths the wizard / `/skill new` use. */
 
 import { defaultConfigPath, loadResolvedSkillPaths, readConfig, writeConfig } from "../config.js";
+import { DEFAULT_MODEL_LIST } from "../defaults.js";
 import { MCP_CATALOG } from "../mcp/catalog.js";
 import { preflightStdioSpec } from "../mcp/preflight.js";
 import { type McpSpec, parseMcpSpec } from "../mcp/spec.js";
@@ -64,7 +65,7 @@ export function registerScaffoldTools(
         },
         model: {
           type: "string",
-          enum: ["deepseek-v4-flash", "deepseek-v4-pro"],
+          enum: [...DEFAULT_MODEL_LIST],
           description:
             "Subagent model override. Default flash; use pro only when the playbook needs it.",
         },

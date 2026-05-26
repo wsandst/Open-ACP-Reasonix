@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resolveContinueFlag, resolveDefaults } from "../src/cli/resolve.js";
 import { writeConfig } from "../src/config.js";
+import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 
 describe("resolveDefaults", () => {
   let home: string;
@@ -36,16 +37,16 @@ describe("resolveDefaults", () => {
 
   it("empty flags + empty config → flash + high", () => {
     const r = resolveDefaults({});
-    expect(r.model).toBe("deepseek-v4-flash");
+    expect(r.model).toBe(DEFAULT_MODEL_FLASH);
     expect(r.reasoningEffort).toBe("high");
     expect(r.mcp).toEqual([]);
     expect(r.session).toBe("default");
   });
 
   it("config.model overrides the default", () => {
-    writeConfig({ model: "deepseek-v4-pro" }, join(home, ".reasonix", "config.json"));
+    writeConfig({ model: DEFAULT_MODEL_PRO }, join(home, ".reasonix", "config.json"));
     const r = resolveDefaults({});
-    expect(r.model).toBe("deepseek-v4-pro");
+    expect(r.model).toBe(DEFAULT_MODEL_PRO);
   });
 
   it("config.reasoningEffort persists across launches", () => {
@@ -54,9 +55,9 @@ describe("resolveDefaults", () => {
   });
 
   it("--model wins over config.model", () => {
-    writeConfig({ model: "deepseek-v4-flash" }, join(home, ".reasonix", "config.json"));
-    const r = resolveDefaults({ model: "deepseek-v4-pro" });
-    expect(r.model).toBe("deepseek-v4-pro");
+    writeConfig({ model: DEFAULT_MODEL_FLASH }, join(home, ".reasonix", "config.json"));
+    const r = resolveDefaults({ model: DEFAULT_MODEL_PRO });
+    expect(r.model).toBe(DEFAULT_MODEL_PRO);
   });
 
   it("--effort wins over config.reasoningEffort", () => {
@@ -97,11 +98,11 @@ describe("resolveDefaults", () => {
 
   it("--no-config ignores the config entirely", () => {
     writeConfig(
-      { model: "deepseek-v4-pro", reasoningEffort: "max", mcp: ["x=cmd"] },
+      { model: DEFAULT_MODEL_PRO, reasoningEffort: "max", mcp: ["x=cmd"] },
       join(home, ".reasonix", "config.json"),
     );
     const r = resolveDefaults({ noConfig: true });
-    expect(r.model).toBe("deepseek-v4-flash");
+    expect(r.model).toBe(DEFAULT_MODEL_FLASH);
     expect(r.reasoningEffort).toBe("high");
     expect(r.mcp).toEqual([]);
   });

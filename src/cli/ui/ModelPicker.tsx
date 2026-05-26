@@ -1,6 +1,7 @@
 import { Box, Text, useStdout } from "ink";
 import React, { useState } from "react";
 import type { ReasoningEffort } from "../../config.js";
+import { DEFAULT_MODEL_LIST } from "../../defaults.js";
 import { t } from "../../i18n/index.js";
 import { useKeystroke } from "./keystroke-context.js";
 import { PILL_MODEL, Pill, modelBadgeFor } from "./primitives/Pill.js";
@@ -193,4 +194,4 @@ function ModelRow({
   );
 }
 
-const FALLBACK_MODELS: ReadonlyArray<string> = ["deepseek-v4-flash", "deepseek-v4-pro"];
+const FALLBACK_MODELS: ReadonlyArray<string> = DEFAULT_MODEL_LIST;

@@ -1,6 +1,7 @@
 import { COMPACTION_SUMMARY_MARKER } from "@reasonix/core-utils";
 import type { LLMClient } from "./client.js";
 import { Usage } from "./client.js";
+import { DEFAULT_MODEL_FLASH } from "./defaults.js";
 import { healLoadedMessages } from "./loop.js";
 import { stripHallucinatedToolMarkup } from "./loop.js";
 import { buildAssistantMessage } from "./loop/messages.js";
@@ -275,7 +276,7 @@ export class ContextManager {
     messagesToSummarize: ChatMessage[],
     pinnedSkillNames: string[],
   ): Promise<{ content: string; reasoningContent: string }> {
-    const summaryModel = "deepseek-v4-flash";
+    const summaryModel = DEFAULT_MODEL_FLASH;
     const healed = healLoadedMessages(messagesToSummarize, DEFAULT_MAX_RESULT_CHARS).messages;
     const agentSystem = this.deps.getSystemPrompt();
     const fewShots = this.deps.getFewShots?.() ?? [];

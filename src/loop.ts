@@ -2,6 +2,7 @@ import { type LLMClient, Usage } from "./client.js";
 import type { ReasoningEffort } from "./config.js";
 import type { PauseGate } from "./core/pause-gate.js";
 import { pauseGate as defaultPauseGate } from "./core/pause-gate.js";
+import { DEFAULT_MODEL_FLASH } from "./defaults.js";
 import { type HookPayload, type ResolvedHook, runHooks } from "./hooks.js";
 import {
   DEFAULT_MAX_RESULT_CHARS,
@@ -199,7 +200,7 @@ export class CacheFirstLoop {
     this.client = opts.client;
     this.prefix = opts.prefix;
     this.tools = opts.tools ?? new ToolRegistry();
-    this.model = opts.model ?? "deepseek-v4-flash";
+    this.model = opts.model ?? DEFAULT_MODEL_FLASH;
     this.reasoningEffort = opts.reasoningEffort ?? "high";
     this.budgetUsd =
       typeof opts.budgetUsd === "number" && opts.budgetUsd > 0 ? opts.budgetUsd : null;

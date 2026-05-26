@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { DeepSeekClient } from "../src/client.js";
+import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 import { CacheFirstLoop } from "../src/loop.js";
 import { ImmutablePrefix } from "../src/memory/runtime.js";
 import type { ChatMessage, ToolSpec } from "../src/types.js";
@@ -94,7 +95,7 @@ describe("ContextManager fold sends cache-aligned summary request", () => {
     const loop = new CacheFirstLoop({
       client,
       prefix: new ImmutablePrefix({ system: SYSTEM_PROMPT, toolSpecs: TOOLS }),
-      model: "deepseek-v4-flash",
+      model: DEFAULT_MODEL_FLASH,
       stream: false,
     });
     seedTurns(loop, 8);
@@ -116,7 +117,7 @@ describe("ContextManager fold sends cache-aligned summary request", () => {
     const loop = new CacheFirstLoop({
       client,
       prefix: new ImmutablePrefix({ system: SYSTEM_PROMPT, toolSpecs: TOOLS }),
-      model: "deepseek-v4-flash",
+      model: DEFAULT_MODEL_FLASH,
       stream: false,
     });
     seedTurns(loop, 8);
@@ -138,7 +139,7 @@ describe("ContextManager fold sends cache-aligned summary request", () => {
     const loop = new CacheFirstLoop({
       client,
       prefix: new ImmutablePrefix({ system: SYSTEM_PROMPT, toolSpecs: TOOLS }),
-      model: "deepseek-v4-flash",
+      model: DEFAULT_MODEL_FLASH,
       stream: false,
     });
     seedTurns(loop, 8);
@@ -168,7 +169,7 @@ describe("ContextManager fold sends cache-aligned summary request", () => {
     const loop = new CacheFirstLoop({
       client,
       prefix: new ImmutablePrefix({ system: SYSTEM_PROMPT, toolSpecs: TOOLS }),
-      model: "deepseek-v4-flash",
+      model: DEFAULT_MODEL_FLASH,
       stream: false,
     });
     seedTurns(loop, 8);
@@ -188,13 +189,13 @@ describe("ContextManager fold sends cache-aligned summary request", () => {
     const loop = new CacheFirstLoop({
       client,
       prefix: new ImmutablePrefix({ system: SYSTEM_PROMPT, toolSpecs: TOOLS }),
-      model: "deepseek-v4-pro",
+      model: DEFAULT_MODEL_PRO,
       stream: false,
     });
     seedTurns(loop, 8);
 
     await loop.compactHistory({ keepRecentTokens: 40 });
-    expect(captured[0]!.model).toBe("deepseek-v4-flash");
+    expect(captured[0]!.model).toBe(DEFAULT_MODEL_FLASH);
   });
 
   it("skill-pinned bodies are sent to summarizer verbatim (head bytes unchanged)", async () => {
@@ -206,7 +207,7 @@ describe("ContextManager fold sends cache-aligned summary request", () => {
     const loop = new CacheFirstLoop({
       client,
       prefix: new ImmutablePrefix({ system: SYSTEM_PROMPT, toolSpecs: TOOLS }),
-      model: "deepseek-v4-flash",
+      model: DEFAULT_MODEL_FLASH,
       stream: false,
     });
 
@@ -246,7 +247,7 @@ describe("ContextManager fold sends cache-aligned summary request", () => {
     const loop = new CacheFirstLoop({
       client,
       prefix: new ImmutablePrefix({ system: SYSTEM_PROMPT, toolSpecs: TOOLS }),
-      model: "deepseek-v4-flash",
+      model: DEFAULT_MODEL_FLASH,
       stream: false,
     });
     seedTurns(loop, 8);

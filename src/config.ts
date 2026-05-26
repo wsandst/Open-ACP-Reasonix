@@ -24,13 +24,14 @@ import {
 /** Single trust dial: review queues edits + gates shell; auto applies + gates shell; yolo skips both gates; plan blocks every non-readonly tool (write_file / edit_file / multi_edit / run_command) at dispatch. */
 export type EditMode = "review" | "auto" | "yolo" | "plan";
 
-export const DEFAULT_MODEL = "deepseek-v4-flash";
+import { DEFAULT_MODEL, DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "./defaults.js";
+export { DEFAULT_MODEL };
 
-/** Models the official api.deepseek.com endpoint currently accepts. v3-era
- *  `deepseek-chat`/`deepseek-reasoner` are gone — sending them produces a 400. */
+/** Default-tier model list — what the model picker shows when the live
+ *  /models call fails. Kept short on purpose; users can type anything else. */
 export const SUPPORTED_OFFICIAL_MODELS: readonly string[] = [
-  "deepseek-v4-flash",
-  "deepseek-v4-pro",
+  DEFAULT_MODEL_FLASH,
+  DEFAULT_MODEL_PRO,
 ];
 
 export type ReasoningEffort = "low" | "medium" | "high" | "max";

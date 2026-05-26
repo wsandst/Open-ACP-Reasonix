@@ -3,6 +3,7 @@ import React from "react";
 import { describe, expect, it } from "vitest";
 import { ModelPicker } from "../src/cli/ui/ModelPicker.js";
 import type { ReasoningEffort } from "../src/config.js";
+import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 import { makeFakeStdin, makeFakeStdout } from "./helpers/ink-stdio.js";
 
 function renderPicker(props: {
@@ -85,10 +86,10 @@ describe("ModelPicker (#371)", () => {
     expect(text).toContain("loading catalog");
   });
 
-  it("falls back to the known DeepSeek ids when catalog is null so the picker isn't empty on first open", () => {
-    const text = renderPicker({ models: null, current: "deepseek-v4-flash" });
-    expect(text).toContain("deepseek-v4-flash");
-    expect(text).toContain("deepseek-v4-pro");
+  it("falls back to the default model ids when catalog is null so the picker isn't empty on first open", () => {
+    const text = renderPicker({ models: null, current: DEFAULT_MODEL_FLASH });
+    expect(text).toContain(DEFAULT_MODEL_FLASH);
+    expect(text).toContain(DEFAULT_MODEL_PRO);
   });
 
   it("shows the explicit empty hint when catalog loaded but is empty", () => {

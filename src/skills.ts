@@ -93,9 +93,11 @@ function parseAllowedTools(raw: string | undefined): readonly string[] | undefin
   return names.length > 0 ? Object.freeze(names) : undefined;
 }
 
-/** flash/pro preset → concrete deepseek model id. Kept local so this file doesn't import the CLI preset bundle. */
+import { modelForPreset } from "./defaults.js";
+
+/** flash/pro preset → concrete model id. Kept local so this file doesn't import the CLI preset bundle. */
 function subagentModelForPreset(preset: "flash" | "pro"): string {
-  return preset === "pro" ? "deepseek-v4-pro" : "deepseek-v4-flash";
+  return modelForPreset(preset);
 }
 
 export class SkillStore {
@@ -288,7 +290,13 @@ export class SkillStore {
       path,
       allowedTools: parseAllowedTools(data["allowed-tools"]),
       runAs: parseRunAs(data.runAs, data.context, data.agent),
-      model: data.model?.startsWith("deepseek-") ? data.model : undefined,
+      // Accept vendor-prefixed ids (`openai/...`, `anthropic/...`) and legacy
+      // bare DeepSeek ids. Filters obvious typos / non-model strings.
+      model:
+        typeof data.model === "string" &&
+        (data.model.includes("/") || data.model.startsWith("deepseek-"))
+          ? data.model
+          : undefined,
     };
   }
 }

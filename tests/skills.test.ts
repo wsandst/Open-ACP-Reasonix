@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 import { SkillStore, applySkillsIndex, validateSkillFrontmatter } from "../src/skills.js";
 
 const BASE = "You are a test assistant.";
@@ -274,8 +275,8 @@ describe("SkillStore", () => {
         subagentModels: { explore: "pro", review: "flash" },
       });
       const byName = new Map(store.list().map((s) => [s.name, s]));
-      expect(byName.get("explore")?.model).toBe("deepseek-v4-pro");
-      expect(byName.get("review")?.model).toBe("deepseek-v4-flash");
+      expect(byName.get("explore")?.model).toBe(DEFAULT_MODEL_PRO);
+      expect(byName.get("review")?.model).toBe(DEFAULT_MODEL_FLASH);
     });
 
     it("leaves inline skills (test) untouched even when their name appears in the override map", () => {
@@ -299,14 +300,14 @@ describe("SkillStore", () => {
           name: "custom-sub",
           description: "custom subagent skill",
           runAs: "subagent",
-          model: "deepseek-v4-pro",
+          model: DEFAULT_MODEL_PRO,
         },
         "body",
         home,
       );
       const store = new SkillStore({ homeDir: home, projectRoot, disableBuiltins: true });
       const sub = store.list().find((s) => s.name === "custom-sub");
-      expect(sub?.model).toBe("deepseek-v4-pro");
+      expect(sub?.model).toBe(DEFAULT_MODEL_PRO);
     });
 
     it("override beats frontmatter model: when both are set", () => {
@@ -318,7 +319,7 @@ describe("SkillStore", () => {
           name: "custom-sub",
           description: "custom subagent skill",
           runAs: "subagent",
-          model: "deepseek-v4-pro",
+          model: DEFAULT_MODEL_PRO,
         },
         "body",
         home,
@@ -330,7 +331,7 @@ describe("SkillStore", () => {
         subagentModels: { "custom-sub": "flash" },
       });
       const sub = store.list().find((s) => s.name === "custom-sub");
-      expect(sub?.model).toBe("deepseek-v4-flash");
+      expect(sub?.model).toBe(DEFAULT_MODEL_FLASH);
     });
   });
 

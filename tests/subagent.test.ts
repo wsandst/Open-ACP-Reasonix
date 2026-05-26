@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { DeepSeekClient, Usage } from "../src/client.js";
+import { DEFAULT_MODEL_FLASH } from "../src/defaults.js";
 import { ToolRegistry } from "../src/tools.js";
 import {
   type SubagentEvent,
@@ -314,12 +315,12 @@ describe("registerSubagentTool", () => {
     });
     const parent = new ToolRegistry();
     registerSubagentTool(parent, { client });
-    // "gpt-4" is not a deepseek-* model — should be ignored.
-    await parent.dispatch("spawn_subagent", JSON.stringify({ task: "go", model: "gpt-4" }));
+    // "made-up-model" is not in the allowed enum — should be ignored.
+    await parent.dispatch("spawn_subagent", JSON.stringify({ task: "go", model: "made-up-model" }));
     // Subagent default was pro pre-0.6; now flash to keep explore/research
     // cheap. Skill frontmatter `model:` is the opt-in override for skills
     // that empirically benefit from pro.
-    expect(seenModels[0]).toBe("deepseek-v4-flash");
+    expect(seenModels[0]).toBe(DEFAULT_MODEL_FLASH);
   });
 
   it("aborts the child when the parent's tool ctx signal fires", async () => {

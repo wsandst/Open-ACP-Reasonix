@@ -1,15 +1,16 @@
+import { isThinkingCapableModel } from "../defaults.js";
+
 /** True when the model emits reasoning_content and requires it round-tripped on follow-ups. */
 export function isThinkingModeModel(model: string): boolean {
-  if (model.includes("reasoner")) return true;
-  if (model === "deepseek-v4-flash" || model === "deepseek-v4-pro") return true;
-  return false;
+  return isThinkingCapableModel(model);
 }
 
-/** Pins extra_body.thinking.type; `undefined` lets third-party endpoints skip the field. */
+/** Pins thinking mode for providers that have an explicit toggle (DeepSeek's
+ *  `extra_body.thinking.type`, mostly). Returns `undefined` for everything else
+ *  so OpenAI-compatible / OpenRouter endpoints don't see an unrecognized field. */
 export function thinkingModeForModel(model: string): "enabled" | "disabled" | undefined {
   if (model === "deepseek-chat") return "disabled";
-  if (model.includes("reasoner")) return "enabled";
-  if (model === "deepseek-v4-flash" || model === "deepseek-v4-pro") return "enabled";
+  if (isThinkingCapableModel(model)) return "enabled";
   return undefined;
 }
 
