@@ -154,6 +154,26 @@ describe("formatLoopError", () => {
     expect(bad).toContain("bad model name");
   });
 
+  it("maps OpenRouter 402 / 422 / 429 to the same wording DeepSeek gets", () => {
+    const credits = formatLoopError(
+      new Error('OpenRouter 402: {"error":{"message":"insufficient credit"}}'),
+    );
+    expect(credits).toMatch(/Out of credits/);
+    expect(credits).toContain("insufficient credit");
+
+    const badparam = formatLoopError(
+      new Error('OpenRouter 422: {"error":{"message":"unknown reasoning effort"}}'),
+    );
+    expect(badparam).toMatch(/Invalid parameter/);
+    expect(badparam).toContain("unknown reasoning effort");
+
+    const concurrency = formatLoopError(
+      new Error('OpenRouter 429: {"error":{"message":"too many requests"}}'),
+    );
+    expect(concurrency).toMatch(/concurrency limit hit/);
+    expect(concurrency).toContain("too many requests");
+  });
+
   it("OpenRouter 5xx → generic upstream wording (no DS-specific lines)", () => {
     const out = formatLoopError(new Error("OpenRouter 503: "), undefined, {
       upstreamHost: "https://openrouter.ai/api/v1",

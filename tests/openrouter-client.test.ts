@@ -300,6 +300,54 @@ describe("OpenRouterClient.stream", () => {
     expect(usage).toEqual({ hit: 3, miss: 2 });
   });
 
+  it("reassembles streamed tool_calls deltas (id + name + chunked arguments)", async () => {
+    const frames = [
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  id: "call_abc",
+                  function: { name: "do_thing", arguments: '{"a":' },
+                },
+              ],
+            },
+          },
+        ],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '1,"b":2}' } }] } }],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [{ finish_reason: "tool_calls", delta: {} }],
+        usage: { prompt_tokens: 4, completion_tokens: 6 },
+      })}\n\n`,
+      "data: [DONE]\n\n",
+    ];
+    const client = new OpenRouterClient({
+      apiKey: "sk-or-test",
+      fetch: vi.fn(async () => sseResponse(frames)) as unknown as typeof fetch,
+    });
+    let id: string | undefined;
+    let name: string | undefined;
+    let args = "";
+    for await (const ch of client.stream({
+      model: "openai/gpt-4o-mini",
+      messages: [{ role: "user", content: "hi" }],
+    })) {
+      const tc = ch.toolCallDelta;
+      if (!tc) continue;
+      if (tc.id) id = tc.id;
+      if (tc.name) name = tc.name;
+      if (tc.argumentsDelta) args += tc.argumentsDelta;
+    }
+    expect(id).toBe("call_abc");
+    expect(name).toBe("do_thing");
+    expect(JSON.parse(args)).toEqual({ a: 1, b: 2 });
+  });
+
   it("sends stream:true and usage:{include:true} so the final frame carries usage", async () => {
     const spy = vi.fn(async () => sseResponse(["data: [DONE]\n\n"]));
     const client = new OpenRouterClient({
@@ -318,5 +366,79 @@ describe("OpenRouterClient.stream", () => {
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.stream).toBe(true);
     expect(body.usage).toEqual({ include: true });
+  });
+});
+
+describe("OpenRouterClient timeout / abort", () => {
+  /** Mock that returns a stream which never produces data until the request signal aborts. */
+  function hangingStreamFetch(): typeof fetch {
+    return vi.fn(async (_url: unknown, init: unknown) => {
+      const reqSignal = (init as RequestInit).signal as AbortSignal | null;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(": keep-alive\n\n"));
+          if (!reqSignal) return;
+          if (reqSignal.aborted) {
+            controller.error(reqSignal.reason);
+            return;
+          }
+          reqSignal.addEventListener(
+            "abort",
+            () => {
+              try {
+                controller.error(reqSignal.reason);
+              } catch {
+                /* controller already closed */
+              }
+            },
+            { once: true },
+          );
+        },
+      });
+      return new Response(body, {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      });
+    }) as unknown as typeof fetch;
+  }
+
+  it("aborts a hung stream when timeoutMs elapses", async () => {
+    const client = new OpenRouterClient({
+      apiKey: "sk-or-test",
+      fetch: hangingStreamFetch(),
+      timeoutMs: 50,
+      retry: { maxAttempts: 1 },
+    });
+    const consume = async () => {
+      for await (const _ of client.stream({
+        model: "openai/gpt-4o-mini",
+        messages: [{ role: "user", content: "hi" }],
+      })) {
+        void _;
+      }
+    };
+    await expect(consume()).rejects.toThrow(/timed out/i);
+  });
+
+  it("caller's signal aborts the stream", async () => {
+    const client = new OpenRouterClient({
+      apiKey: "sk-or-test",
+      fetch: hangingStreamFetch(),
+      timeoutMs: 60_000,
+      retry: { maxAttempts: 1 },
+    });
+    const ctrl = new AbortController();
+    const consume = async () => {
+      for await (const _ of client.stream({
+        model: "openai/gpt-4o-mini",
+        messages: [{ role: "user", content: "hi" }],
+        signal: ctrl.signal,
+      })) {
+        void _;
+      }
+    };
+    const p = consume();
+    setTimeout(() => ctrl.abort(new Error("user pressed esc")), 30);
+    await expect(p).rejects.toThrow(/user pressed esc/);
   });
 });
