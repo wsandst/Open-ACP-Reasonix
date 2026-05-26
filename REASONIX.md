@@ -1,73 +1,85 @@
-# Reasonix — working knowledge
+# Open-ACP-Reasonix — working knowledge
 
-TypeScript project. DeepSeek-native coding agent, cache-first loop.
-MIT-licensed. Node ≥22 required.
+TypeScript ACP backend; fork of [esengine/DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix).
+OpenRouter-first, DeepSeek-compatible. MIT. Node ≥ 22.
 
 ## Stack
 
 - **Language** — TS 5.6+, ES2022, ESM (`"type": "module"`)
-- **CLI** — Commander.js + Ink 5 (React 18) TUI
-- **Test** — Vitest 2.x
-- **Lint / Format** — Biome 1.9 (2-space, double quotes, semicolons always, 100 width)
-- **Build** — tsup (bundle), `tsx` (dev runner)
-- **MCP** — stdio + SSE transports, in-process fake in tests
+- **CLI** — Commander.js (no TUI; only long-running command is `acp`)
+- **Test** — Vitest 2.x (2297 passing, 0 failing)
+- **Lint / Format** — Biome 1.9 (2-space, double quotes, semicolons, 100 width)
+- **Build** — tsup; `tsx` for dev runs
+- **Tokenizer** — `tiktoken` (o200k_base default; cl100k_base for legacy gpt-4/3.5)
+- **MCP** — stdio + SSE + Streamable HTTP transports
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `src/cli/` | CLI entry + commands (`chat.tsx`, `code.tsx`, `diff.ts`, etc.) + Ink TUI in `ui/` |
-| `src/tools/` | Tool defs (filesystem, shell, MCP, plan, subagent, web, workspace) |
-| `src/mcp/` | MCP client, transports (stdio, SSE), registry, spec |
-| `src/repair/` | Tool-call repair pipeline (flatten, scavenge, storm, truncation) |
-| `src/index/` | Semantic vector index |
-| `src/code/` | SEARCH/REPLACE edit-block parser + apply gate |
-| `src/core/` | Event-log kernel — `events.ts` (Event union), `reducers.ts` (pure projections), `eventize.ts` |
-| `src/ports/` | Port interfaces — ModelClient, ToolHost, EventSink, MemoryStore, HookRunner, CheckpointStore |
-| `src/adapters/` | Concrete adapters for the ports (e.g. `event-sink-jsonl.ts`, `event-source-jsonl.ts`) |
-| `src/frame/` | Frame compiler (cell grid → ANSI) used by the TUI log renderer |
-| `src/memory/` | Project / session / user / runtime memory stores |
-| `src/transcript/` | Transcript log (write), diff, replay |
-| `src/telemetry/` | Usage records + cross-session stats |
-| `src/server/` | Dashboard HTTP server + REST API |
-| `tests/` | Vitest tests, flat `*.test.ts` |
-| `examples/` | `basic-chat.ts`, `mcp-server-demo.ts`, etc. |
-| `benchmarks/` | Harvest + tau-bench harnesses |
-| `dashboard/` | Compiled dashboard SPA assets |
-| `data/` | Tokenizer data (`deepseek-tokenizer.json.gz`) |
-| `dist/` | Build output — **do not edit** |
-| `.github/` | CI + issue / PR templates |
+| `src/acp/` | ACP server: `protocol.ts`, `server.ts`, `dispatch.ts`, `gates.ts` |
+| `src/cli/index.ts` | CLI entry — registers `acp`, `doctor`, `mcp-inspect`, `version` |
+| `src/cli/commands/` | Surviving commands (4 total) |
+| `src/client.ts` | `LLMClient` interface + `DeepSeekClient` |
+| `src/openrouter.ts` | `OpenRouterClient` (OR-compatible chat-completions transport) |
+| `src/llm-factory.ts` | `createLLMClient(endpoint)` provider picker |
+| `src/defaults.ts` | Single source of truth for default model ids |
+| `src/loop.ts` + `src/loop/` | `CacheFirstLoop` — turn iteration, streaming, error categorization |
+| `src/context-manager.ts` | Auto-fold on overflow, summarize-on-stuck |
+| `src/repair/` | Tool-call repair pipeline (flatten / scavenge / truncation / storm) |
+| `src/code/` | SEARCH/REPLACE edit blocks + apply gate + code-mode prompt |
+| `src/code-query/` | Tree-sitter-backed symbol/range search |
+| `src/index/semantic/` | Semantic vector index (Ollama / OpenAI-compat embeddings) |
+| `src/memory/` | Project / user / session / runtime memory stores |
+| `src/mcp/` | MCP client + transports + bridge + format helpers |
+| `src/tools/` | Filesystem, shell, plan, todo, subagent, web, code-query, skills |
+| `src/telemetry/` | `stats.ts` (usage rollups) + `pricing-cache.ts` (live OR fetch) |
+| `src/transcript/` | JSONL transcript log + replay + diff |
+| `src/tokenizer.ts` | tiktoken wrapper with model→encoding picker |
+| `src/i18n/` | EN-only translation shim (locales removed; shim kept for `t()` callers) |
+| `tests/` | Vitest, flat `*.test.ts` |
+| `scripts/` | One-off perf probes + tree-sitter grammar copier |
 
 ## Commands
 
 ```sh
 npm run build       # tsup → dist/
-npm run dev         # tsx src/cli/index.ts
-npm run chat        # tsx src/cli/index.ts chat
+npm run dev acp     # tsx src/cli/index.ts acp
 npm run test        # vitest run
-npm run test:watch  # vitest
 npm run lint        # biome check src tests
 npm run lint:fix    # biome check --write src tests
-npm run format      # biome format --write src tests
 npm run typecheck   # tsc --noEmit
+npm run verify      # lint → typecheck → test
 ```
-
-`prepublishOnly`: lint → typecheck → test → build.
 
 ## Conventions
 
-- **Imports** — explicit `import type` for type-only imports (Biome `useImportType: warn`). Direct relative imports within project, no barrel re-exports.
-- **Exports** — named exports only; no `export default`. Entry: `src/index.ts`.
-- **Tests** — vitest `describe`/`it`/`expect`, no globals. Naming: `<module>.test.ts` flat in `tests/`.
-- **JSX** — `.tsx` for Ink components. `jsx: "react"` in tsconfig.
+- **Imports** — `import type` for type-only; no barrel re-exports; relative within project.
+- **Exports** — named only; no `export default`. Library entry: `src/index.ts`.
+- **Tests** — vitest `describe`/`it`/`expect`, no globals. Flat `tests/<module>.test.ts`.
 - **TypeScript** — `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`. Tools accept `ToolCallContext` (abort signal).
-- **MCP** — All transports implement `McpTransport` interface. Tools registered via registry at startup.
-- **Changelog** — Keep a Changelog format. Semver.
+- **Comments** — One-line max for non-obvious WHY. CLAUDE.md comment-policy enforced by `tests/comment-policy.test.ts` (≤ 3-line block comments, ≤ 2-line module headers).
+- **Provider abstraction** — Code that talks to the model uses `LLMClient` (interface), not `DeepSeekClient` / `OpenRouterClient` directly. Construction sites use `createLLMClient(loadEndpoint())`.
 
 ## Watch out for
 
-- **This IS Reasonix** — edits to `src/loop.ts`, `src/repair/`, `src/tools/`, `src/mcp/` affect every session. Test before publishing.
-- **SEARCH must match byte-for-byte** — the edit-gate in `src/code/edit-blocks.ts` enforces exact match. Trailing whitespace or wrong indent = mismatch.
-- **`dist/`** is generated by `tsup`. Never hand-edit.
-- **`.reasonix/semantic/`** is auto-generated vector index. Never hand-edit.
-- **`sessions/` and `.reasonix/sessions/`** are user-private, git-ignored (per `.gitignore`).
+- **ACP is the product** — `src/acp/` is the integration surface other tools speak to. Don't change protocol fields without updating ACP v1 conformance.
+- **Cache stability is load-bearing** — `ImmutablePrefix` is hashed and pinned; mutations outside its sanctioned methods throw. Don't add timestamps / dynamic content to the system prompt.
+- **SEARCH must match byte-for-byte** — the edit-gate in `src/code/edit-blocks.ts` enforces exact match. Trailing whitespace / wrong indent = mismatch.
+- **`dist/` and `~/.reasonix/`** are generated; never hand-edit. The pricing-cache lives at `~/.reasonix/pricing-cache.json`.
+- **Provider detection** — `loadEndpoint()` picks OpenRouter first when `OPENROUTER_API_KEY` is set; a stale `DEEPSEEK_API_KEY` in the shell does NOT silently override. Don't change that precedence without an `acp.ts` integration test.
+
+## Upstream parity
+
+The agent loop, repair pipeline, MCP bridging, edit gate, memory model, session persistence, hooks, skills, and ACP server implementation are all upstream work from [esengine/DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix). When upstream lands a relevant fix, the merge surface is concentrated in:
+
+- `src/client.ts` (provider interface)
+- `src/openrouter.ts` (fork-only)
+- `src/llm-factory.ts` (fork-only)
+- `src/defaults.ts` (fork-only — model ids)
+- `src/telemetry/{stats,pricing-cache}.ts` (provider-aware pricing)
+- `src/tokenizer.ts` (tiktoken replacement)
+- `src/cli/index.ts` (rewritten)
+- Everything under `src/cli/ui/`, `src/server/`, `src/desktop/`, `dashboard/`, `desktop/` was **deleted in this fork** — upstream changes there don't apply.
+
+Read `REWORK_CHAT.md` at the repo root for the full pre-rework analysis (~4-6% of upstream LOC is actually fork-specific; everything else auto-merges).

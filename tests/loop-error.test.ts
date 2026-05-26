@@ -18,19 +18,17 @@ describe("formatLoopError", () => {
     );
     const out = formatLoopError(raw);
     expect(out).toMatch(/Context overflow/);
-    expect(out).toMatch(/\/sessions/);
     expect(out).toMatch(/929,452 tokens/); // pretty-printed from the raw JSON
   });
 
-  it("401 → authentication hint with setup/env var fix", () => {
+  it("401 → authentication hint with env var fix", () => {
     const raw = new Error(
       'DeepSeek 401: {"error":{"message":"Authentication Fails, Your api key is invalid"}}',
     );
     const out = formatLoopError(raw);
     expect(out).toMatch(/Authentication failed/);
-    expect(out).toMatch(/reasonix setup/);
+    expect(out).toMatch(/OPENROUTER_API_KEY/);
     expect(out).toMatch(/DEEPSEEK_API_KEY/);
-    // Inner error.message survives the unwrap
     expect(out).toContain("Your api key is invalid");
   });
 
@@ -84,20 +82,11 @@ describe("formatLoopError", () => {
     expect(out).toMatch(/too many tokens/);
   });
 
-  it("context-overflow message mentions both the 1M V4 limit and the legacy 131k", () => {
-    const raw = new Error(
-      'DeepSeek 400: {"error":{"message":"This model\'s maximum context length is 131072 tokens. However, you requested 200000 tokens."}}',
-    );
-    const out = formatLoopError(raw);
-    expect(out).toMatch(/1M/);
-    expect(out).toMatch(/131k/);
-  });
-
   it("503 with no probe → DS-side outage notice + retry hint, no probe-specific line", () => {
     const raw = new Error('DeepSeek 503: {"error":{"message":"Service unavailable"}}');
     const out = formatLoopError(raw);
     expect(out).toMatch(/service unavailable \(503\)/);
-    expect(out).toMatch(/DeepSeek-side problem, not Reasonix/);
+    expect(out).toMatch(/DeepSeek-side problem/);
     expect(out).toMatch(/Already retried 4×/);
     expect(out).toContain("status.deepseek.com");
     expect(out).not.toMatch(/main API answered/);

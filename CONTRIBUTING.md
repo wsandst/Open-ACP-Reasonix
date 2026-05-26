@@ -1,31 +1,43 @@
-# Contributing to Reasonix
+# Contributing to Open-ACP-Reasonix
 
-Thanks for showing up. Reasonix is a small, opinionated codebase
-maintained primarily by [@esengine](https://github.com/esengine);
-PRs are welcome, but read this first so the round-trip is short.
+Thanks for showing up. This is a focused fork of
+[esengine/DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix) —
+an ACP-native, OpenRouter-first agent backend with the upstream interactive
+TUI / dashboard / desktop surfaces stripped. PRs are welcome, but read this
+first so the round-trip is short.
 
 ## Setup
 
 ```sh
-git clone https://github.com/esengine/reasonix
-cd reasonix
+git clone <this-repo>
+cd Open-ACP-Reasonix
 npm install
-npm run dev          # tsx src/cli/index.ts — live source
+OPENROUTER_API_KEY=sk-or-... npm run dev acp     # tsx src/cli/index.ts acp
 ```
 
 Node ≥ 22. No global install needed during development.
 
 For stack, layout, scripts, see [`REASONIX.md`](./REASONIX.md).
 
+## Where to upstream vs. where to fork
+
+Most agent-loop work — repair pipeline, MCP, edit gate, ACP protocol, memory,
+hooks, skills — belongs **upstream** at [esengine/DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix).
+Send PRs there first; this fork will pick them up on the next sync.
+
+Land changes **here** only when they're fork-specific:
+- Provider abstraction (`src/client.ts` interface, `src/openrouter.ts`, `src/llm-factory.ts`)
+- OpenRouter-specific behavior (pricing cache, model-id defaults, tiktoken routing)
+- Documentation / package metadata for the fork
+
 ## Proposing changes
 
 - **Bug fixes** — go ahead and open a PR. Include a reproduction.
-- **New features / behavior changes** — open an issue first to align
-  on scope and approach. Reasonix tries to stay small; "we could add
-  X" PRs that arrive cold are usually rejected or scoped down.
-- **External MCP servers, plugins, presets** — a thin wrapper is
-  fine; a sprawling integration is better hosted as a separate
-  package that depends on `reasonix`.
+- **New features** — open an issue first. The fork tries to stay small and
+  ACP-focused; "we could add X" PRs that arrive cold are usually rejected or
+  scoped down.
+- **External MCP servers, plugins, presets** — better hosted as a separate
+  package that depends on `open-acp-reasonix`.
 
 ## Code rules
 
@@ -68,16 +80,10 @@ clearer (rename, extract, simplify) before any comment is added.
 
 ### Libraries over hand-rolled
 
-If a problem has a well-maintained npm library, use it. Specific
-landmines this project has hit:
-
-- Visual width / unicode width → `string-width`
-- Grapheme segmentation → `Intl.Segmenter`
-- ANSI strip → use what `string-width` ships with
-- Color → use `theme.ts` constants, not raw hex in component code
-
-If a lib is missing a case, file the issue upstream and add a thin
-wrapper — don't fork a local table.
+If a problem has a well-maintained npm library, use it. Tokenization, MCP
+transports, retry/backoff, proxy detection — all already wired through
+maintained deps. If a lib is missing a case, file the issue upstream and
+add a thin wrapper — don't fork a local table.
 
 ### Files
 
@@ -113,7 +119,7 @@ wrapper — don't fork a local table.
   …`).
 - One logical change per commit; refactors land separately from
   features.
-- No `Co-Authored-By: Claude` trailer.
+- `Co-Authored-By:` trailers are fine when an AI assistant did meaningful work; honest attribution beats hidden authorship.
 
 ## PR expectations
 

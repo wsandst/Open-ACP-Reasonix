@@ -80,6 +80,25 @@ program
     await mcpInspectCommand({ spec });
   });
 
+program
+  .command("index")
+  .description("build or refresh the semantic search index (Ollama / OpenAI-compat embeddings)")
+  .option("--rebuild", "ignore the existing index and start fresh")
+  .option("-m, --model <id>", "override the embedding model id")
+  .option("--dir <path>", "project root to index (default: cwd)")
+  .option("--ollama-url <url>", "override the Ollama base URL")
+  .option("-y, --yes", "skip interactive confirmation prompts")
+  .action(async (opts) => {
+    const { indexCommand } = await import("./commands/index.js");
+    await indexCommand({
+      rebuild: !!opts.rebuild,
+      model: opts.model,
+      dir: opts.dir,
+      ollamaUrl: opts.ollamaUrl,
+      yes: !!opts.yes,
+    });
+  });
+
 program.parseAsync(process.argv).catch((err: unknown) => {
   process.stderr.write(`${(err as Error).message ?? String(err)}\n`);
   process.exit(1);
