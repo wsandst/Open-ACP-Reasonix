@@ -29,7 +29,7 @@ export interface OpenRouterClientOptions {
 }
 
 const DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
-const DEFAULT_APP_TITLE = "Reasonix";
+const DEFAULT_APP_TITLE = "Open-ACP-Reasonix";
 
 export class OpenRouterClient implements LLMClient {
   readonly apiKey: string;

@@ -1,4 +1,4 @@
-/** Reasonix — DeepSeek-native agent framework. Library entry point. */
+/** Open-ACP-Reasonix — provider-agnostic ACP agent framework. Library entry point. */
 
 export { DeepSeekClient, Usage } from "./client.js";
 export type {

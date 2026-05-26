@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { Usage } from "../src/client.js";
 import { writeConfig } from "../src/config.js";
 import {
-  DEEPSEEK_PRICING,
+  FALLBACK_PRICING,
   SessionStats,
   cacheSavingsUsd,
   costUsd,
@@ -17,7 +17,7 @@ import {
 // re-bake stale constants every time DeepSeek updates the price sheet.
 // The `costUsd` formula under test is:
 //   (hitT * hit + missT * miss + outT * out) / 1e6
-const CHAT = DEEPSEEK_PRICING["deepseek-chat"]!;
+const CHAT = FALLBACK_PRICING["deepseek-chat"]!;
 
 describe("Usage.cacheHitRatio", () => {
   it("computes hit ratio", () => {
@@ -54,12 +54,12 @@ describe("Usage.cacheHitRatio", () => {
 
 describe("costUsd", () => {
   it("matches DeepSeek's published V4 USD pricing sheet", () => {
-    expect(DEEPSEEK_PRICING["deepseek-v4-flash"]).toEqual({
+    expect(FALLBACK_PRICING["deepseek-v4-flash"]).toEqual({
       inputCacheHit: 0.0028,
       inputCacheMiss: 0.14,
       output: 0.28,
     });
-    expect(DEEPSEEK_PRICING["deepseek-v4-pro"]).toEqual({
+    expect(FALLBACK_PRICING["deepseek-v4-pro"]).toEqual({
       inputCacheHit: 0.003625,
       inputCacheMiss: 0.435,
       output: 0.87,
@@ -211,16 +211,16 @@ describe("inputCostUsd / outputCostUsd", () => {
     // respectively, so billing is identical. If this diverges, either
     // DeepSeek split them again (update the constants) or one alias
     // got out of sync during an update — catch before shipping.
-    const chat = DEEPSEEK_PRICING["deepseek-chat"]!;
-    const reasoner = DEEPSEEK_PRICING["deepseek-reasoner"]!;
-    const flash = DEEPSEEK_PRICING["deepseek-v4-flash"]!;
+    const chat = FALLBACK_PRICING["deepseek-chat"]!;
+    const reasoner = FALLBACK_PRICING["deepseek-reasoner"]!;
+    const flash = FALLBACK_PRICING["deepseek-v4-flash"]!;
     expect(reasoner).toEqual(chat);
     expect(chat).toEqual(flash);
   });
 
   it("v4-pro pricing is present and strictly above v4-flash", () => {
-    const flash = DEEPSEEK_PRICING["deepseek-v4-flash"]!;
-    const pro = DEEPSEEK_PRICING["deepseek-v4-pro"]!;
+    const flash = FALLBACK_PRICING["deepseek-v4-flash"]!;
+    const pro = FALLBACK_PRICING["deepseek-v4-pro"]!;
     expect(pro.inputCacheHit).toBeGreaterThan(flash.inputCacheHit);
     expect(pro.inputCacheMiss).toBeGreaterThan(flash.inputCacheMiss);
     expect(pro.output).toBeGreaterThan(flash.output);

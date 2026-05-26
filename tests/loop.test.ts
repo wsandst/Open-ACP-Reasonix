@@ -10,7 +10,7 @@ import { type ConfirmationChoice, PauseGate } from "../src/core/pause-gate.js";
 import { DEFAULT_MODEL_FLASH, DEFAULT_MODEL_PRO } from "../src/defaults.js";
 import { CacheFirstLoop } from "../src/loop.js";
 import { ImmutablePrefix } from "../src/memory/runtime.js";
-import { DEEPSEEK_CONTEXT_TOKENS } from "../src/telemetry/stats.js";
+import { FALLBACK_CONTEXT_TOKENS } from "../src/telemetry/stats.js";
 import { ToolRegistry } from "../src/tools.js";
 import type { ChatMessage } from "../src/types.js";
 
@@ -65,7 +65,7 @@ function makeClient(responses: FakeResponseShape[]) {
 
 describe("CacheFirstLoop (non-streaming)", () => {
   afterEach(() => {
-    delete DEEPSEEK_CONTEXT_TOKENS[FOLD_TEST_MODEL];
+    delete FALLBACK_CONTEXT_TOKENS[FOLD_TEST_MODEL];
   });
 
   it("completes a single-turn plain chat", async () => {
@@ -670,7 +670,7 @@ describe("CacheFirstLoop (non-streaming)", () => {
     // 95% threshold AND the fold tailBudget (20%) stays smaller than the log
     // so fold has a meaningful head to compact. The mocked usage trips post-
     // response auto-fold without preflight stealing the work.
-    DEEPSEEK_CONTEXT_TOKENS[FOLD_TEST_MODEL] = 200_000;
+    FALLBACK_CONTEXT_TOKENS[FOLD_TEST_MODEL] = 200_000;
     const tripPrompt = Math.ceil(
       200_000 *
         (HISTORY_FOLD_THRESHOLD + (HISTORY_FOLD_AGGRESSIVE_THRESHOLD - HISTORY_FOLD_THRESHOLD) / 2),
@@ -738,7 +738,7 @@ describe("CacheFirstLoop (non-streaming)", () => {
   }, 30_000);
 
   it("uses the aggressive fold tier when promptTokens crosses the aggressive threshold", async () => {
-    DEEPSEEK_CONTEXT_TOKENS[FOLD_TEST_MODEL] = 200_000;
+    FALLBACK_CONTEXT_TOKENS[FOLD_TEST_MODEL] = 200_000;
     const tripPrompt = Math.ceil(
       200_000 * (HISTORY_FOLD_AGGRESSIVE_THRESHOLD + (0.8 - HISTORY_FOLD_AGGRESSIVE_THRESHOLD) / 2),
     );

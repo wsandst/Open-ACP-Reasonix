@@ -5,7 +5,7 @@ import { getCachedPricing } from "./pricing-cache.js";
 /** USD per 1M tokens; display currency conversion happens at the UI boundary.
  *  Used as the fallback table — `pricingFor()` prefers data fetched from the
  *  active provider's /models endpoint (see src/telemetry/pricing-cache.ts). */
-export const DEEPSEEK_PRICING: Record<
+export const FALLBACK_PRICING: Record<
   string,
   { inputCacheHit: number; inputCacheMiss: number; output: number }
 > = {
@@ -19,12 +19,12 @@ export const DEEPSEEK_PRICING: Record<
   "deepseek-reasoner": { inputCacheHit: 0.0028, inputCacheMiss: 0.14, output: 0.28 },
 };
 
-export type ModelPricing = (typeof DEEPSEEK_PRICING)[string];
+export type ModelPricing = (typeof FALLBACK_PRICING)[string];
 
 export function pricingFor(model: string, path?: string): ModelPricing | undefined {
   // Resolution order: user override → live OpenRouter cache → static fallback.
   const override = loadPricingOverride(path)[model];
-  const base = getCachedPricing(model) ?? DEEPSEEK_PRICING[model];
+  const base = getCachedPricing(model) ?? FALLBACK_PRICING[model];
   if (!override) return base;
   const pricing = { ...base, ...override };
   if (
@@ -41,7 +41,7 @@ export function pricingFor(model: string, path?: string): ModelPricing | undefin
 export const CLAUDE_SONNET_PRICING = { input: 3.0, output: 15.0 };
 
 /** Prompt-side window only; completion caps live server-side and don't affect this gauge. */
-export const DEEPSEEK_CONTEXT_TOKENS: Record<string, number> = {
+export const FALLBACK_CONTEXT_TOKENS: Record<string, number> = {
   "openai/gpt-4o-mini": 128_000,
   "openai/gpt-5": 400_000,
   "deepseek-v4-flash": 1_000_000,
