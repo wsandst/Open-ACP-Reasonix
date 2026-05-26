@@ -1,10 +1,5 @@
-/** OpenRouter chat-completions transport. OpenAI-compatible REST surface with a
- *  few provider-specific quirks (reasoning emitted on `delta.reasoning` instead
- *  of `delta.reasoning_content`; cached prompt tokens reported as nested
- *  `prompt_tokens_details.cached_tokens`; credits exposed under `/credits` not
- *  `/user/balance`).
- *
- *  Implements LLMClient so the loop / subagent code stays provider-agnostic. */
+/** OpenRouter chat-completions transport (LLMClient). OpenAI-compatible REST
+ *  surface; reasoning lands on `delta.reasoning`, cache hits on `usage.prompt_tokens_details.cached_tokens`, credits at `/credits`. */
 
 import { type EventSourceMessage, createParser } from "eventsource-parser";
 import type {
