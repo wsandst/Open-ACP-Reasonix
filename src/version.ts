@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** npm registry endpoint for the `latest` dist-tag of this package. */
-const REGISTRY_URL = "https://registry.npmjs.org/reasonix/latest";
+const REGISTRY_URL = "https://registry.npmjs.org/open-acp-reasonix/latest";
 
 /** TTL for the on-disk cache entry. 24h keeps noise low; users who
  * want a fresh check can run `reasonix update` which passes

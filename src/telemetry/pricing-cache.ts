@@ -20,6 +20,10 @@ interface PricingCacheFile {
  *  unknown to the cache, callers should fall back to the static table. */
 let memCache: Map<string, ModelPricing> | null = null;
 let inflightRefresh: Promise<Map<string, ModelPricing>> | null = null;
+/** Latches true once ensurePricingCacheFresh has loaded disk or kicked a
+ *  refresh — subagents construct a CacheFirstLoop each, so without this
+ *  every spawn does a sync readFileSync on the hot path. */
+let ensureRanThisSession = false;
 
 function loadFromDisk(path: string = DEFAULT_CACHE_PATH): PricingCacheFile | null {
   if (!existsSync(path)) return null;
@@ -51,13 +55,16 @@ interface RawORModel {
   };
 }
 
-/** Per-token strings → per-1M-token numbers; non-numeric/missing fields drop. */
+/** Per-token strings → per-1M-token numbers; non-numeric/missing fields drop.
+ *  Models priced at $0 (free tier or unset) are skipped so pricingFor() falls
+ *  through to the static fallback instead of reporting cost rows as $0. */
 function parsePricing(raw: RawORModel): ModelPricing | null {
   const p = raw.pricing;
   if (!p) return null;
   const cacheMiss = Number(p.prompt);
   const output = Number(p.completion);
   if (!Number.isFinite(cacheMiss) || !Number.isFinite(output)) return null;
+  if (cacheMiss <= 0 || output <= 0) return null;
   const cacheHitRaw = Number(p.input_cache_read);
   const cacheHit = Number.isFinite(cacheHitRaw) && cacheHitRaw >= 0 ? cacheHitRaw : cacheMiss;
   return {
@@ -109,7 +116,8 @@ export function getCachedPricing(model: string): ModelPricing | undefined {
 }
 
 /** Force a refresh from the network; writes the result to disk + memory.
- *  Returns the existing cache on failure rather than throwing. */
+ *  Returns the existing cache on failure rather than throwing. Inflight promise
+ *  is held one event-loop turn past resolution so microtask-drain callers dedup. */
 export async function refreshPricingCache(
   opts: PricingCacheOptions = {},
 ): Promise<Map<string, ModelPricing>> {
@@ -117,27 +125,36 @@ export async function refreshPricingCache(
   const endpoint = opts.endpoint ?? DEFAULT_PRICING_ENDPOINT;
   const fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   const cachePath = opts.cachePath ?? DEFAULT_CACHE_PATH;
-  inflightRefresh = (async () => {
+  const job = (async () => {
     try {
       const map = await fetchPricing(endpoint, fetchImpl);
       memCache = map;
       writeToDisk({ fetchedAt: Date.now(), byModel: Object.fromEntries(map) }, cachePath);
       return map;
     } catch {
-      // Keep whatever's in memory.
       if (memCache) return memCache;
       memCache = new Map();
       return memCache;
-    } finally {
-      inflightRefresh = null;
     }
   })();
-  return inflightRefresh;
+  inflightRefresh = job;
+  // Clearing in `finally` lets a new caller arriving in the microtask drain
+  // after resolution start a redundant fetch. setImmediate defers past the
+  // microtask queue so dedup holds for the rest of this event-loop turn.
+  job.finally(() => {
+    setImmediate(() => {
+      if (inflightRefresh === job) inflightRefresh = null;
+    });
+  });
+  return job;
 }
 
 /** Background refresh if the disk cache is missing or stale. Fire-and-forget;
- *  never throws. Call from CacheFirstLoop construction. */
+ *  never throws. Idempotent within a session so subagent spawns don't each
+ *  pay a sync readFileSync. */
 export function ensurePricingCacheFresh(opts: PricingCacheOptions = {}): void {
+  if (ensureRanThisSession) return;
+  ensureRanThisSession = true;
   const maxAgeMs = opts.maxAgeMs ?? DEFAULT_MAX_AGE_MS;
   const cachePath = opts.cachePath ?? DEFAULT_CACHE_PATH;
   const disk = loadFromDisk(cachePath);
@@ -154,4 +171,5 @@ export function ensurePricingCacheFresh(opts: PricingCacheOptions = {}): void {
 export function _resetPricingCache(): void {
   memCache = null;
   inflightRefresh = null;
+  ensureRanThisSession = false;
 }

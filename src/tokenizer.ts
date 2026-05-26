@@ -13,13 +13,29 @@ type EncodingName = "o200k_base" | "cl100k_base";
 const DEFAULT_ENCODING: EncodingName = "o200k_base";
 
 const encoderCache = new Map<EncodingName, Tiktoken>();
+/** Latches true if tiktoken's WASM fails to instantiate (broken bundle,
+ *  sandboxed Node, antivirus quarantine). Subsequent calls skip the retry
+ *  and use the char-based heuristic — better than crashing mid-turn. */
+let encoderFailed = false;
 
-function getEncoder(name: EncodingName = DEFAULT_ENCODING): Tiktoken {
+function getEncoder(name: EncodingName = DEFAULT_ENCODING): Tiktoken | null {
+  if (encoderFailed) return null;
   const hit = encoderCache.get(name);
   if (hit) return hit;
-  const enc = get_encoding(name);
-  encoderCache.set(name, enc);
-  return enc;
+  try {
+    const enc = get_encoding(name);
+    encoderCache.set(name, enc);
+    return enc;
+  } catch {
+    encoderFailed = true;
+    return null;
+  }
+}
+
+/** ~3.3 chars/token across English text; matches the bound used by
+ *  countTokensBounded's degenerate path and the old DeepSeek fallback. */
+function heuristicTokens(text: string): number {
+  return Math.max(1, Math.ceil(text.length * 0.3));
 }
 
 /** Best-effort model → tiktoken encoding mapping. Most modern OpenAI models use
@@ -68,12 +84,24 @@ export function warmupTokenizer(): void {
 
 export function encode(text: string, model?: string): number[] {
   if (!text) return [];
-  return Array.from(getEncoder(encodingForModel(model)).encode(text));
+  const enc = getEncoder(encodingForModel(model));
+  if (!enc) return [];
+  try {
+    return Array.from(enc.encode(text));
+  } catch {
+    return [];
+  }
 }
 
 export function countTokens(text: string, model?: string): number {
   if (!text) return 0;
-  return getEncoder(encodingForModel(model)).encode(text).length;
+  const enc = getEncoder(encodingForModel(model));
+  if (!enc) return heuristicTokens(text);
+  try {
+    return enc.encode(text).length;
+  } catch {
+    return heuristicTokens(text);
+  }
 }
 
 export const DEFAULT_BOUNDED_TOKENIZE_CHARS = 2 * 1024;
@@ -195,4 +223,5 @@ export function _resetForTests(): void {
   }
   encoderCache.clear();
   contentTokenCache.clear();
+  encoderFailed = false;
 }

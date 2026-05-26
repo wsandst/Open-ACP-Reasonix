@@ -123,7 +123,7 @@ describe("OpenRouterClient.getBalance", () => {
     expect(bal!.balance_infos[0]!.granted_balance).toBe("10.00");
   });
 
-  it("flags is_available=false when remaining hits zero", async () => {
+  it("flags is_available=false when a funded balance is exhausted", async () => {
     const client = new OpenRouterClient({
       apiKey: "sk-or-test",
       fetch: makeFetch(200, {
@@ -133,6 +133,17 @@ describe("OpenRouterClient.getBalance", () => {
     const bal = await client.getBalance();
     expect(bal!.is_available).toBe(false);
     expect(bal!.balance_infos[0]!.total_balance).toBe("0.00");
+  });
+
+  it("stays available for BYOK / unlimited accounts that report total_credits=0", async () => {
+    const client = new OpenRouterClient({
+      apiKey: "sk-or-test",
+      fetch: makeFetch(200, {
+        data: { total_credits: 0, total_usage: 0 },
+      }),
+    });
+    const bal = await client.getBalance();
+    expect(bal!.is_available).toBe(true);
   });
 
   it("returns null on malformed payload", async () => {

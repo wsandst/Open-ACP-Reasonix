@@ -136,13 +136,17 @@ export class OpenRouterClient implements LLMClient {
       const data = json.data;
       if (!data || typeof data.total_credits !== "number") return null;
       const used = typeof data.total_usage === "number" ? data.total_usage : 0;
-      const remaining = Math.max(0, data.total_credits - used);
+      const remaining = data.total_credits - used;
       const info: BalanceInfo = {
         currency: "USD",
-        total_balance: remaining.toFixed(2),
+        total_balance: Math.max(0, remaining).toFixed(2),
         granted_balance: data.total_credits.toFixed(2),
       };
-      return { is_available: remaining > 0, balance_infos: [info] };
+      // BYOK / unlimited / never-deposited accounts report total_credits=0 but
+      // are fully usable. Only gate when the user has actually spent into a
+      // funded balance and exhausted it.
+      const isAvailable = data.total_credits === 0 ? true : remaining > 0;
+      return { is_available: isAvailable, balance_infos: [info] };
     } catch {
       return null;
     }
