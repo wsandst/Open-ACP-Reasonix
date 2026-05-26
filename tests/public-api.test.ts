@@ -104,6 +104,7 @@ const PUBLIC_API: readonly string[] = [
   "JsonRpcResponse",
   "LATEST_CACHE_TTL_MS",
   "LATEST_FETCH_TIMEOUT_MS",
+  "LLMClient",
   "ListDirectoryOptions",
   "ListFilesOptions",
   "ListPromptsResult",

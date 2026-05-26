@@ -1,5 +1,5 @@
 import { COMPACTION_SUMMARY_MARKER } from "@reasonix/core-utils";
-import type { DeepSeekClient } from "./client.js";
+import type { LLMClient } from "./client.js";
 import { Usage } from "./client.js";
 import { healLoadedMessages } from "./loop.js";
 import { stripHallucinatedToolMarkup } from "./loop.js";
@@ -50,7 +50,7 @@ export const SKILL_PIN_MEMO_HEADER = "[Active skill memos — preserved verbatim
 const SKILL_PIN_REGEX = /<skill-pin name="([^"]+)">\n[\s\S]*?\n<\/skill-pin>/g;
 
 export interface ContextManagerDeps {
-  client: DeepSeekClient;
+  client: LLMClient;
   log: AppendOnlyLog;
   stats: SessionStats;
   sessionName: string | null;

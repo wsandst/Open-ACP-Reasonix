@@ -1,4 +1,4 @@
-import type { DeepSeekClient } from "../client.js";
+import type { LLMClient } from "../client.js";
 import { t } from "../i18n/index.js";
 
 export interface DeepSeekProbeResult {
@@ -46,7 +46,7 @@ export function is5xxError(err: unknown): boolean {
 }
 
 export async function probeDeepSeekReachable(
-  client: DeepSeekClient,
+  client: LLMClient,
   timeoutMs = 1500,
 ): Promise<DeepSeekProbeResult> {
   const balance = await client.getBalance({ signal: AbortSignal.timeout(timeoutMs) });

@@ -108,7 +108,21 @@ export interface DeepSeekClientOptions {
   retry?: RetryOptions;
 }
 
-export class DeepSeekClient {
+/** Provider-agnostic chat-completions surface. DeepSeekClient and OpenRouterClient
+ *  both satisfy this; the loop / CLI / subagent code is written against the
+ *  interface so swapping providers is a one-line construction change. */
+export interface LLMClient {
+  /** Origin used for error categorization (e.g. DS-only 5xx wording). */
+  readonly baseUrl: string;
+  chat(opts: ChatRequestOptions): Promise<ChatResponse>;
+  stream(opts: ChatRequestOptions): AsyncGenerator<StreamChunk>;
+  /** Wallet/credit balance; returns null when the provider has no such endpoint or it fails. */
+  getBalance(opts?: { signal?: AbortSignal }): Promise<UserBalance | null>;
+  /** Provider's model catalog; returns null on failure so callers can fall back to a hint list. */
+  listModels(opts?: { signal?: AbortSignal }): Promise<ModelList | null>;
+}
+
+export class DeepSeekClient implements LLMClient {
   readonly apiKey: string;
   readonly baseUrl: string;
   readonly timeoutMs: number;

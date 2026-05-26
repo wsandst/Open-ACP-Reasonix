@@ -1,4 +1,4 @@
-import { type DeepSeekClient, Usage } from "./client.js";
+import { type LLMClient, Usage } from "./client.js";
 import type { ReasoningEffort } from "./config.js";
 import type { PauseGate } from "./core/pause-gate.js";
 import { pauseGate as defaultPauseGate } from "./core/pause-gate.js";
@@ -82,7 +82,7 @@ export {
 export type { EventRole, LoopEvent } from "./loop/types.js";
 
 export interface CacheFirstLoopOptions {
-  client: DeepSeekClient;
+  client: LLMClient;
   prefix: ImmutablePrefix;
   tools?: ToolRegistry;
   model?: string;
@@ -121,7 +121,7 @@ function shrinkMessageForRetention(message: ChatMessage): ChatMessage {
 }
 
 export class CacheFirstLoop {
-  readonly client: DeepSeekClient;
+  readonly client: LLMClient;
   readonly prefix: ImmutablePrefix;
   readonly tools: ToolRegistry;
   readonly log = new AppendOnlyLog();

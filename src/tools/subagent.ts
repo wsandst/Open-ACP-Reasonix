@@ -1,6 +1,6 @@
 /** Isolated child loop. Inherits parent registry minus spawn_subagent + submit_plan; no hooks; non-streaming. */
 
-import { type DeepSeekClient, Usage } from "../client.js";
+import { type LLMClient, Usage } from "../client.js";
 import { CacheFirstLoop } from "../loop.js";
 import { applyProjectMemory } from "../memory/project.js";
 import { ImmutablePrefix } from "../memory/runtime.js";
@@ -52,7 +52,7 @@ export interface SubagentSink {
 export const SHARED_SUBAGENT_SINK: SubagentSink = { current: null };
 
 export interface SpawnSubagentOptions {
-  client: DeepSeekClient;
+  client: LLMClient;
   parentRegistry: ToolRegistry;
   system: string;
   task: string;
@@ -85,7 +85,7 @@ export interface SubagentResult {
 }
 
 export interface SubagentToolOptions {
-  client: DeepSeekClient;
+  client: LLMClient;
   defaultSystem?: string;
   projectRoot?: string;
   defaultModel?: string;

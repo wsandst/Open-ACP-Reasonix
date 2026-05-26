@@ -1,4 +1,4 @@
-import { type DeepSeekClient, Usage } from "../client.js";
+import { type LLMClient, Usage } from "../client.js";
 import { t } from "../i18n/index.js";
 import type { TurnStats } from "../telemetry/stats.js";
 import type { ChatMessage } from "../types.js";
@@ -10,7 +10,7 @@ import type { LoopEvent } from "./types.js";
 export type ForceSummaryReason = "aborted" | "context-guard" | "stuck";
 
 export interface ForceSummaryContext {
-  client: DeepSeekClient;
+  client: LLMClient;
   signal: AbortSignal;
   buildMessages: () => ChatMessage[];
   appendAndPersist: (msg: ChatMessage) => void;
