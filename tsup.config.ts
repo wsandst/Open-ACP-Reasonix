@@ -24,10 +24,5 @@ export default defineConfig([
     },
     platform: "node",
     noExternal: [/.*/],
-    esbuildOptions(opts) {
-      opts.external = [...(opts.external ?? []), "react-devtools-core"];
-    },
   },
-  // Dashboard is now built by Vite (npm run build:dashboard).
-  // The old tsup entry that bundled dashboard/app.js has been removed.
 ]);

@@ -2,9 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, test } from "vitest";
 
-const ROOTS = ["src", "tests", "benchmarks", "scripts", "dashboard/src"].map((r) =>
-  join(process.cwd(), r),
-);
+const ROOTS = ["src", "tests", "benchmarks", "scripts"].map((r) => join(process.cwd(), r));
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
