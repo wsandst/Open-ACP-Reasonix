@@ -1,5 +1,6 @@
 import type { Usage } from "../client.js";
 import { loadPricingOverride } from "../config.js";
+import { getCachedPricing } from "./pricing-cache.js";
 
 /** USD per 1M tokens; display currency conversion happens at the UI boundary.
  *  Used as the fallback table — `pricingFor()` prefers data fetched from the
@@ -21,10 +22,11 @@ export const DEEPSEEK_PRICING: Record<
 export type ModelPricing = (typeof DEEPSEEK_PRICING)[string];
 
 export function pricingFor(model: string, path?: string): ModelPricing | undefined {
-  const defaults = DEEPSEEK_PRICING[model];
+  // Resolution order: user override → live OpenRouter cache → static fallback.
   const override = loadPricingOverride(path)[model];
-  if (!override) return defaults;
-  const pricing = { ...defaults, ...override };
+  const base = getCachedPricing(model) ?? DEEPSEEK_PRICING[model];
+  if (!override) return base;
+  const pricing = { ...base, ...override };
   if (
     pricing.inputCacheHit === undefined ||
     pricing.inputCacheMiss === undefined ||

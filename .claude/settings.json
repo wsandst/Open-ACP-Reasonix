@@ -1,0 +1,51 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(python3 -c \"from src.cli.move.logic import _classify_from_server_type; print\\(_classify_from_server_type\\('staging.example.com'\\)\\)\")",
+            "Bash(*)",
+            "WebSearch",
+            "Monitor",
+            "Read(//tmp/**)",
+            "Read(//private/tmp/**)",
+            "Read(//Users/williamsandstrom/repos/hilleberg/store3.hilleberg.com/**)",
+            "WebFetch(domain:fastapi-mcp.tadata.com)",
+            "WebFetch(domain:github.com)",
+            "WebFetch(domain:raw.githubusercontent.com)",
+            "WebFetch(domain:proxyon.com)",
+            "WebFetch(domain:api.proxyon.io)",
+            "WebFetch(domain:apidocs.webshare.io)",
+            "WebFetch(domain:help.decodo.com)",
+            "Read(//Users/williamsandstrom/repos/python/jo-web-analysis-backend/src/utils/**)",
+            "Read(//Users/williamsandstrom/repos/python/jo-web-analysis-backend/src/**)",
+            "Read(//Users/williamsandstrom/repos/python/jo-web-analysis-backend/**)",
+            "Read(//usr/local/lib/python3.12/site-packages/trafilatura/**)",
+            "mcp__spider-flow__mcp_capture",
+            "mcp__spider-flow__mcp_crawl",
+            "mcp__spider-flow__mcp_crawl_status",
+            "mcp__spider-flow__mcp_crawl_result",
+            "mcp__spider-flow__mcp_crawl_cancel",
+            "mcp__spider-flow",
+            "WebFetch(domain:developers.google.com)",
+            "WebFetch(domain:blog.fka.dev)",
+            "Bash(python flow.py agent persona list)",
+            "Bash(rm -rf /tmp/agent-test-target/CLAUDE.md /tmp/agent-test-target/.claude/personas)",
+            "Bash(python flow.py agent persona /tmp/agent-test-target spock)",
+            "WebFetch(domain:abidan-archives.fandom.com)",
+            "WebFetch(domain:tvtropes.org)",
+            "WebFetch(domain:www.goodreads.com)",
+            "WebFetch(domain:wiki.abidanarchive.com)",
+            "WebFetch(domain:www.magicalquote.com)",
+            "mcp__spider-flow__mcp_inspect_page",
+            "Edit",
+            "Write"
+        ],
+        "additionalDirectories": [
+            "/tmp/size-diff",
+            "/private/tmp/size-diff",
+            "/tmp/migration-plans",
+            "/private/tmp/migration-plans",
+            "/tmp",
+            "/private/tmp"
+        ]
+    }
+}

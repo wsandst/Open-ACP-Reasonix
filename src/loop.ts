@@ -54,6 +54,7 @@ import {
   rewriteSession,
 } from "./memory/session.js";
 import { type RepairReport, ToolCallRepair } from "./repair/index.js";
+import { ensurePricingCacheFresh } from "./telemetry/pricing-cache.js";
 import { SessionStats, type TurnStats } from "./telemetry/stats.js";
 import { ToolRegistry } from "./tools.js";
 import { ReadTracker } from "./tools/read-tracker.js";
@@ -201,6 +202,12 @@ export class CacheFirstLoop {
     this.prefix = opts.prefix;
     this.tools = opts.tools ?? new ToolRegistry();
     this.model = opts.model ?? DEFAULT_MODEL_FLASH;
+    // Fire-and-forget pricing refresh for OpenRouter — cost rows go from
+    // "0" to real-USD as soon as the /models payload lands. No-op when the
+    // disk cache is fresh; never blocks or throws.
+    if (this.client.baseUrl.includes("openrouter.ai")) {
+      ensurePricingCacheFresh();
+    }
     this.reasoningEffort = opts.reasoningEffort ?? "high";
     this.budgetUsd =
       typeof opts.budgetUsd === "number" && opts.budgetUsd > 0 ? opts.budgetUsd : null;
