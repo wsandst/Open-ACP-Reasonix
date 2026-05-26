@@ -42,14 +42,14 @@ import { t } from "../../i18n/index.js";
 import { CacheFirstLoop, ImmutablePrefix } from "../../index.js";
 import { createLLMClient } from "../../llm-factory.js";
 import { McpClient } from "../../mcp/client.js";
+import { formatMcpLifecycleEvent } from "../../mcp/format/lifecycle.js";
+import { formatMcpSlowToast } from "../../mcp/format/slow-toast.js";
 import { preflightStdioSpec } from "../../mcp/preflight.js";
 import { bridgeMcpTools } from "../../mcp/registry.js";
 import { buildTransportFromSpec } from "../../mcp/transport-from-spec.js";
 import { timestampSuffix } from "../../memory/session.js";
 import { openTranscriptFile, recordFromLoopEvent, writeRecord } from "../../transcript/log.js";
 import { VERSION } from "../../version.js";
-import { formatMcpLifecycleEvent } from "../ui/mcp-lifecycle.js";
-import { formatMcpSlowToast } from "../ui/mcp-toast.js";
 
 export interface AcpOptions {
   model?: string;

@@ -5,7 +5,6 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
-import { type ThemeName, isThemeName, resolveThemeName } from "./cli/ui/theme/tokens.js";
 import { atomicWriteSync } from "./core/atomic-write.js";
 import type { LanguageCode } from "./i18n/types.js";
 import {
@@ -14,7 +13,6 @@ import {
   resolveIndexConfig,
 } from "./index/config.js";
 import { type McpServerSpec, parseMcpSpec } from "./mcp/spec.js";
-import { normalizeQQAllowlist, normalizeQQOpenId } from "./qq/access.js";
 import {
   type NormalizedToolRateLimitConfig,
   type ToolRateLimitConfig,
@@ -116,15 +114,6 @@ export interface McpServerConfig {
   disabled?: boolean;
 }
 
-export interface QQBotConfig {
-  appId?: string;
-  appSecret?: string;
-  sandbox?: boolean;
-  enabled?: boolean;
-  ownerOpenId?: string;
-  allowlist?: string[];
-}
-
 export interface PricingOverride {
   inputCacheHit?: number;
   inputCacheMiss?: number;
@@ -167,7 +156,7 @@ export interface ReasonixConfig {
   desktopOpenTabs?: DesktopOpenTab[];
   /** Desktop only — `openWith` value for clicking file links. Empty/undefined = OS default app. Examples: "code", "cursor", "C:\\path\\to\\editor.exe". */
   editor?: string;
-  theme?: ThemeName | "auto";
+  theme?: string;
   /** Stored as `--mcp`-format strings so one parser handles both flag and config. */
   mcp?: string[];
   /** Names of servers in `mcp` to skip on bridge — see `/mcp disable <name>`. */
@@ -272,8 +261,6 @@ export interface ReasonixConfig {
     /** read_file flips to outline mode for files above this. Default 64 KiB — keeps the cache prefix slim while covering ~99% of source files. Raise to 524288 (512 KiB) for the pre-0.46.0 "trust the cache" behavior. */
     outlineThresholdBytes?: number;
   };
-  /** QQ Bot configuration */
-  qq?: QQBotConfig;
 }
 
 export interface CustomMemoryTypeConfig {
@@ -1183,27 +1170,6 @@ export function loadReasoningEffort(path: string = defaultConfigPath()): Reasoni
   return isReasoningEffort(v) ? v : "high";
 }
 
-export function loadTheme(path: string = defaultConfigPath()): ThemeName | "auto" | undefined {
-  const value = readConfig(path).theme;
-  if (value === "auto") return "auto";
-  if (typeof value === "string" && isThemeName(value)) return value;
-  return undefined;
-}
-
-export function resolveThemePreference(
-  configTheme: ThemeName | "auto" | undefined,
-  envTheme?: string | null,
-): ThemeName {
-  if (configTheme && configTheme !== "auto") return configTheme;
-  return resolveThemeName(envTheme);
-}
-
-export function saveTheme(theme: ThemeName | "auto", path: string = defaultConfigPath()): void {
-  const cfg = readConfig(path);
-  cfg.theme = theme;
-  writeConfig(cfg, path);
-}
-
 /** Persist the reasoning_effort cap so `/effort high` survives a relaunch. */
 export function saveReasoningEffort(
   effort: ReasoningEffort,
@@ -1495,53 +1461,4 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const proto = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
-}
-
-export interface LoadedQQConfig {
-  appId?: string;
-  appSecret?: string;
-  sandbox?: boolean;
-  enabled?: boolean;
-  ownerOpenId?: string;
-  allowlist?: string[];
-}
-
-export function loadQQConfig(path: string = defaultConfigPath()): LoadedQQConfig {
-  const envSandbox = process.env.QQ_SANDBOX;
-  const envAllowlist = normalizeQQAllowlist(process.env.QQ_ALLOWLIST);
-  const fromEnv = {
-    appId: process.env.QQ_APPID,
-    appSecret: process.env.QQ_SECRET,
-    sandbox: envSandbox === "1" ? true : envSandbox === "0" ? false : undefined,
-    ownerOpenId: normalizeQQOpenId(process.env.QQ_OWNER_OPENID),
-    allowlist: envAllowlist,
-  };
-  const fromCfg = readConfig(path).qq ?? {};
-  const ownerOpenId = fromEnv.ownerOpenId ?? normalizeQQOpenId(fromCfg.ownerOpenId);
-  const allowlist = normalizeQQAllowlist(fromEnv.allowlist ?? fromCfg.allowlist)?.filter(
-    (openid) => openid !== ownerOpenId,
-  );
-  return {
-    appId: fromEnv.appId ?? fromCfg.appId,
-    appSecret: fromEnv.appSecret ?? fromCfg.appSecret,
-    sandbox: fromEnv.sandbox ?? fromCfg.sandbox ?? false,
-    enabled: fromCfg.enabled === true,
-    ownerOpenId,
-    allowlist,
-  };
-}
-
-export function saveQQConfig(cfg: LoadedQQConfig, path: string = defaultConfigPath()): void {
-  const rootCfg = readConfig(path);
-  const ownerOpenId = normalizeQQOpenId(cfg.ownerOpenId);
-  const allowlist = normalizeQQAllowlist(cfg.allowlist)?.filter((openid) => openid !== ownerOpenId);
-  rootCfg.qq = {
-    appId: cfg.appId,
-    appSecret: cfg.appSecret,
-    sandbox: cfg.sandbox,
-    enabled: cfg.enabled,
-    ownerOpenId,
-    allowlist,
-  };
-  writeConfig(rootCfg, path);
 }
