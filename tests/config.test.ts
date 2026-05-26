@@ -60,6 +60,11 @@ describe("config", () => {
   const originalSearch = process.env.REASONIX_SEARCH;
   const originalBaseUrl = process.env.DEEPSEEK_BASE_URL;
   const originalApiBaseUrl = process.env.DEEPSEEK_API_BASE_URL;
+  // OpenRouter takes precedence in loadEndpoint(); a leaked shell key would
+  // shadow every DeepSeek-shaped assertion below. Save/restore alongside the DS vars.
+  const originalOpenRouterKey = process.env.OPENROUTER_API_KEY;
+  const originalOpenRouterBaseUrl = process.env.OPENROUTER_BASE_URL;
+  const originalOpenRouterApiBaseUrl = process.env.OPENROUTER_API_BASE_URL;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "reasonix-test-"));
@@ -72,6 +77,12 @@ describe("config", () => {
     delete process.env.DEEPSEEK_BASE_URL;
     // biome-ignore lint/performance/noDelete: same reason
     delete process.env.DEEPSEEK_API_BASE_URL;
+    // biome-ignore lint/performance/noDelete: same reason
+    delete process.env.OPENROUTER_API_KEY;
+    // biome-ignore lint/performance/noDelete: same reason
+    delete process.env.OPENROUTER_BASE_URL;
+    // biome-ignore lint/performance/noDelete: same reason
+    delete process.env.OPENROUTER_API_BASE_URL;
   });
 
   afterEach(() => {
@@ -99,6 +110,24 @@ describe("config", () => {
       delete process.env.DEEPSEEK_API_BASE_URL;
     } else {
       process.env.DEEPSEEK_API_BASE_URL = originalApiBaseUrl;
+    }
+    if (originalOpenRouterKey === undefined) {
+      // biome-ignore lint/performance/noDelete: same reason
+      delete process.env.OPENROUTER_API_KEY;
+    } else {
+      process.env.OPENROUTER_API_KEY = originalOpenRouterKey;
+    }
+    if (originalOpenRouterBaseUrl === undefined) {
+      // biome-ignore lint/performance/noDelete: same reason
+      delete process.env.OPENROUTER_BASE_URL;
+    } else {
+      process.env.OPENROUTER_BASE_URL = originalOpenRouterBaseUrl;
+    }
+    if (originalOpenRouterApiBaseUrl === undefined) {
+      // biome-ignore lint/performance/noDelete: same reason
+      delete process.env.OPENROUTER_API_BASE_URL;
+    } else {
+      process.env.OPENROUTER_API_BASE_URL = originalOpenRouterApiBaseUrl;
     }
   });
 

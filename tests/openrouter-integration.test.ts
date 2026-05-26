@@ -1,6 +1,4 @@
-/** Live-network smoke test: real HTTP to OpenRouter. Skipped unless
- *  OPENROUTER_API_KEY is exported in the shell, so CI / contributors without
- *  a key see the suite quietly skip rather than fail. */
+/** Live-network smoke test: real HTTP to OpenRouter. Skipped unless OPENROUTER_API_KEY is set. */
 
 import { describe, expect, it } from "vitest";
 import { CacheFirstLoop } from "../src/loop.js";
