@@ -1,122 +1,45 @@
-import { loadLanguage, saveLanguage } from "../config.js";
+/** English-only translation lookup; thin shim so existing call sites keep compiling. */
+
 import { EN } from "./EN.js";
-import { de } from "./de.js";
-import { ru } from "./ru.js";
-import type { LanguageCode, TranslationSchema } from "./types.js";
-import { zhCN } from "./zh-CN.js";
+import type { TranslationSchema } from "./types.js";
 
-const translations: Record<LanguageCode, TranslationSchema> = {
-  EN,
-  "zh-CN": zhCN,
-  de,
-  ru,
-};
+const translations: TranslationSchema = EN;
 
-/** Map a system locale (e.g. "zh-CN", "en-US") to a supported LanguageCode, or null. */
-export function detectSystemLanguage(locale: string = systemLocale()): LanguageCode | null {
-  if (locale.startsWith("zh")) return "zh-CN";
-  if (locale.startsWith("en")) return "EN";
-  if (locale.startsWith("de")) return "de";
-  if (locale.startsWith("ru")) return "ru";
-  return null;
-}
-
-function systemLocale(): string {
-  return (
-    process.env.LC_ALL ||
-    process.env.LC_MESSAGES ||
-    process.env.LANG ||
-    Intl.DateTimeFormat().resolvedOptions().locale
-  );
-}
-
-let currentLang: LanguageCode = loadLanguage() ?? detectSystemLanguage() ?? "EN";
-
-type Listener = () => void;
-const listeners: Listener[] = [];
-
-export function onLanguageChange(cb: Listener): () => void {
-  listeners.push(cb);
-  return () => {
-    const i = listeners.indexOf(cb);
-    if (i >= 0) listeners.splice(i, 1);
-  };
-}
-
-export function notifyLanguageChange(): void {
-  for (const cb of listeners) cb();
-}
-
-export function setLanguage(lang: LanguageCode): void {
-  if (translations[lang]) {
-    currentLang = lang;
-    saveLanguage(lang);
-  }
-}
-
-/** Set language for the current process only (no disk write). Used by tests. */
-export function setLanguageRuntime(lang: LanguageCode): void {
-  if (translations[lang]) {
-    currentLang = lang;
-  }
-}
-
-export function getLanguage(): LanguageCode {
-  return currentLang;
-}
-
-export function getSupportedLanguages(): LanguageCode[] {
-  return Object.keys(translations) as LanguageCode[];
-}
-
-/** Returns a structured (non-string) translation entry — for tables / row objects passed to TipCard etc. */
+/** Returns a structured (non-string) translation entry — for callers that
+ *  fetch a row object rather than a leaf string. */
 export function tObj<T>(path: string): T {
+  return resolve(path) as T;
+}
+
+/** Nested-key lookup with `{name}` parameter substitution. */
+export function t(path: string, params?: Record<string, string | number>): string {
+  const val = resolve(path);
+  if (typeof val !== "string") return path;
+  if (!params) return val;
+  let result = val;
+  for (const [k, v] of Object.entries(params)) {
+    result = result.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+  }
+  return result;
+}
+
+function resolve(path: string): unknown {
   const parts = path.split(".");
-  let val: unknown = translations[currentLang] || translations.EN;
+  let val: unknown = translations;
   for (const part of parts) {
     val = (val as Record<string, unknown> | undefined)?.[part];
-    if (val === undefined) break;
+    if (val === undefined) return undefined;
   }
-  if (val === undefined && currentLang !== "EN") {
-    val = translations.EN;
-    for (const part of parts) {
-      val = (val as Record<string, unknown> | undefined)?.[part];
-      if (val === undefined) break;
-    }
-  }
-  return val as T;
-}
-
-/** Simple t() — nested keys (e.g. "common.error") + param replacement (e.g. "{code}"). */
-export function t(path: string, params?: Record<string, string | number>): string {
-  const parts = path.split(".");
-  let val: any = translations[currentLang] || translations.EN;
-
-  for (const part of parts) {
-    val = val?.[part];
-    if (val === undefined) break;
-  }
-
-  // Fallback to English if not found in current language
-  if (val === undefined && currentLang !== "EN") {
-    val = translations.EN;
-    for (const part of parts) {
-      val = val?.[part];
-      if (val === undefined) break;
-    }
-  }
-
-  if (typeof val !== "string") {
-    return path;
-  }
-
-  if (params) {
-    let result = val;
-    for (const [k, v] of Object.entries(params)) {
-      result = result.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
-    }
-    return result;
-  }
-
   return val;
 }
+
+/** Legacy no-op shims — kept so callers that haven't been edited still compile. */
+export function setLanguage(_lang: string): void {}
+export function setLanguageRuntime(_lang: string): void {}
+export function getLanguage(): string {
+  return "EN";
+}
+export function onLanguageChange(_cb: () => void): () => void {
+  return () => {};
+}
+export function notifyLanguageChange(): void {}
