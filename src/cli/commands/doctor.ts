@@ -1,6 +1,6 @@
 /** Plain-text (not Ink) — must work when everything else is broken. fail → exit 1; warn → exit 0. */
 
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { type UserBalance, pickPrimaryBalance } from "../../client.js";
@@ -268,29 +268,33 @@ function summarizeBalances(
 }
 
 async function checkTokenizer(): Promise<Check> {
-  // Reuse the runtime's resolver so the doctor never disagrees with what
-  // the tokenizer actually loads — three candidates including a global
-  // npm install probe via createRequire.
-  const path = resolveDataPath();
-  if (existsSync(path)) {
-    try {
-      const stat = statSync(path);
+  // tiktoken ships its WASM bundled in the package; verify the encoder
+  // initializes + counts a probe string to confirm the WASM is loadable.
+  try {
+    const { countTokens } = await import("../../tokenizer.js");
+    const n = countTokens("hello");
+    if (n > 0) {
+      const path = resolveDataPath();
       return {
         id: "tokenizer",
         label: "tokenizer    ",
         level: "ok",
-        detail: `${path} (${fmtBytes(stat.size)})`,
+        detail: `tiktoken ok (${path})`,
       };
-    } catch {
-      /* fall through to warn */
     }
+  } catch (err) {
+    return {
+      id: "tokenizer",
+      label: "tokenizer    ",
+      level: "warn",
+      detail: `tiktoken failed to initialize: ${(err as Error).message}`,
+    };
   }
   return {
     id: "tokenizer",
     label: "tokenizer    ",
     level: "warn",
-    detail:
-      "data/deepseek-tokenizer.json.gz not found — token counts will fall back to char heuristics",
+    detail: "tiktoken returned 0 tokens for a probe string — token counts will be unreliable",
   };
 }
 
