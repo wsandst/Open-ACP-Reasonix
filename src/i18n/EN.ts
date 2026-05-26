@@ -40,7 +40,7 @@ export const EN: TranslationSchema = {
   },
   run: {
     missingApiKey:
-      "DEEPSEEK_API_KEY is not set and stdin is not a TTY (cannot prompt).\n" +
+      "OPENROUTER_API_KEY (or DEEPSEEK_API_KEY) is not set and stdin is not a TTY (cannot prompt).\n" +
       "Set the env var, or run `reasonix chat` once interactively to save a key.\n",
   },
   sessions: {
@@ -432,14 +432,15 @@ export const EN: TranslationSchema = {
     languageTitle: "Choose your language",
     languageSubtitle: "Detected from your system locale. Switch later via /language.",
     welcomeTitle: "Welcome to Reasonix.",
-    apiKeyPrompt: "Paste your DeepSeek API key to get started.",
-    apiKeyGetOne: "Get one at: https://platform.deepseek.com/api_keys",
+    apiKeyPrompt: "Paste your OpenRouter (or DeepSeek) API key to get started.",
+    apiKeyGetOne:
+      "Get one at: https://openrouter.ai/keys (or https://platform.deepseek.com/api_keys)",
     apiKeySavedLocally: "Saved locally to {path}",
     apiKeyInputLabel: "key › ",
     apiKeyInvalid: "Key looks too short — paste the full token (16+ chars, no spaces).",
     apiKeyChecking: "Checking API key…",
     apiKeyRejected:
-      "DeepSeek rejected this API key. Paste a valid key, or press Esc to cancel setup.",
+      "The provider rejected this API key. Paste a valid key, or press Esc to cancel setup.",
     apiKeyCheckFailed:
       "Could not verify this API key right now ({message}). Check your network or try again.",
     apiKeyPreview: "preview: {redacted}",
@@ -707,13 +708,13 @@ export const EN: TranslationSchema = {
       "Context overflow (DeepSeek 400): session history is {requested}, past the model's prompt limit (V4: 1M tokens; legacy chat/reasoner: 131k). Usually a single tool result grew too big. Reasonix caps new tool results at 8k tokens and auto-heals oversized history on session load — a restart often clears it. If it still overflows, run /new to start fresh, or open /sessions and press [d] to delete this session.",
     contextOverflowTooMany: "too many tokens",
     auth401:
-      "Authentication failed (DeepSeek 401): {inner}. Your API key is rejected. Fix with `reasonix setup` or `export DEEPSEEK_API_KEY=sk-...`. Get one at https://platform.deepseek.com/api_keys.",
+      "Authentication failed (401): {inner}. Your API key is rejected. Fix with `reasonix setup`, or `export OPENROUTER_API_KEY=sk-or-...` (https://openrouter.ai/keys) or `export DEEPSEEK_API_KEY=sk-...` (https://platform.deepseek.com/api_keys).",
     balance402:
-      "Out of balance (DeepSeek 402): {inner}. Top up at https://platform.deepseek.com/top_up — the panel header shows your balance once it's non-zero.",
-    badparam422: "Invalid parameter (DeepSeek 422): {inner}",
-    badrequest400: "Bad request (DeepSeek 400): {inner}",
+      "Out of credits (402): {inner}. Top up at https://openrouter.ai/credits or https://platform.deepseek.com/top_up — the panel header shows your balance once it's non-zero.",
+    badparam422: "Invalid parameter (422): {inner}",
+    badrequest400: "Bad request (400): {inner}",
     concurrency429:
-      "DeepSeek concurrency limit hit (429): {inner}. The account has too many in-flight requests (cap: 500 for v4-pro, 2500 for v4-flash, summed across API keys account-wide). Usually means another Reasonix process is sharing the same key, or a parallel subagent fan-out overshot. Wait a few seconds and retry, reduce parallelism, or request a higher cap at https://platform.deepseek.com.",
+      "Provider concurrency limit hit (429): {inner}. Too many in-flight requests on the upstream account. Usually means another Reasonix process is sharing the same key, or a parallel subagent fan-out overshot. Wait a few seconds and retry, reduce parallelism, or request a higher cap from your provider.",
     deepseek5xxHead:
       "DeepSeek service unavailable ({status}) — this is a DeepSeek-side problem, not Reasonix. Already retried 4× with backoff.",
     deepseek5xxReachable:

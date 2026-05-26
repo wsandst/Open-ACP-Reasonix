@@ -488,7 +488,12 @@ export async function validateDeepSeekApiKey(
   } = {},
 ): Promise<ApiKeyValidationResult> {
   const fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
-  let baseUrl = opts.baseUrl ?? loadBaseUrl() ?? "https://api.deepseek.com";
+  // OpenRouter keys (sk-or-...) start with `sk-or-`; route them to OR's /models
+  // when no explicit baseUrl is set so probing works pre-config-save.
+  const defaultBase = apiKey.startsWith("sk-or-")
+    ? "https://openrouter.ai/api/v1"
+    : "https://api.deepseek.com";
+  let baseUrl = opts.baseUrl ?? loadBaseUrl() ?? defaultBase;
   while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
 
   const ctrl = new AbortController();

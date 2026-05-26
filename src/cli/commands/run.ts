@@ -49,7 +49,8 @@ async function ensureApiKey(): Promise<string> {
   }
 
   process.stdout.write(
-    "DeepSeek API key not configured.\nGet one at https://platform.deepseek.com/api_keys\n",
+    "API key not configured.\n" +
+      "Get one at https://openrouter.ai/keys (or https://platform.deepseek.com/api_keys)\n",
   );
   const rl = createInterface({ input: stdin, output: stdout });
   try {

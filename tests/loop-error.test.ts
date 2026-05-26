@@ -35,11 +35,12 @@ describe("formatLoopError", () => {
     expect(out).toContain("Your api key is invalid");
   });
 
-  it("402 → balance hint with top-up URL", () => {
+  it("402 → credit hint with top-up URLs for both providers", () => {
     const raw = new Error('DeepSeek 402: {"error":{"message":"Insufficient Balance"}}');
     const out = formatLoopError(raw);
-    expect(out).toMatch(/Out of balance/);
-    expect(out).toMatch(/top_up/);
+    expect(out).toMatch(/Out of credits/);
+    expect(out).toMatch(/openrouter\.ai\/credits/);
+    expect(out).toMatch(/platform\.deepseek\.com\/top_up/);
     expect(out).toContain("Insufficient Balance");
   });
 
@@ -52,16 +53,14 @@ describe("formatLoopError", () => {
     expect(out).toContain("temperature");
   });
 
-  it("429 → concurrency-limit hint with cap numbers + remediation (#1522)", () => {
+  it("429 → concurrency-limit hint mentions retry + parallelism remediation", () => {
     const raw = new Error(
       'DeepSeek 429: {"error":{"message":"Too Many Requests, please reduce concurrency"}}',
     );
     const out = formatLoopError(raw);
     expect(out).toMatch(/concurrency limit/);
-    expect(out).toMatch(/500/);
-    expect(out).toMatch(/2500/);
     expect(out).toContain("reduce concurrency");
-    expect(out).toContain("platform.deepseek.com");
+    expect(out).toMatch(/reduce parallelism/);
   });
 
   it("400 (non-overflow) → extracts the inner error message, drops the JSON wrapping", () => {

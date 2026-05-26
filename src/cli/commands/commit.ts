@@ -246,7 +246,7 @@ export async function commitCommand(opts: CommitOptions = {}): Promise<void> {
   const ep = loadEndpoint();
   if (!ep.apiKey) {
     process.stderr.write(
-      "reasonix commit: DEEPSEEK_API_KEY not set. Run `reasonix setup` to save one, or export it.\n",
+      "reasonix commit: OPENROUTER_API_KEY (or DEEPSEEK_API_KEY) not set. Run `reasonix setup` to save one, or export it.\n",
     );
     process.exit(1);
   }
