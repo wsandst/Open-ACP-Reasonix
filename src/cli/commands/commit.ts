@@ -6,9 +6,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
-import { DeepSeekClient } from "../../client.js";
+import type { LLMClient } from "../../client.js";
 import { loadEndpoint } from "../../config.js";
 import { loadDotenv } from "../../env.js";
+import { createLLMClient } from "../../llm-factory.js";
 
 export interface CommitOptions {
   /** Override the default model (deepseek-v4-flash). */
@@ -107,7 +108,7 @@ function readRecentCommits(): string {
 }
 
 async function draftMessage(
-  client: DeepSeekClient,
+  client: LLMClient,
   model: string,
   diff: DiffResult,
   recentCommits: string,
@@ -267,7 +268,7 @@ export async function commitCommand(opts: CommitOptions = {}): Promise<void> {
     );
   }
 
-  const client = new DeepSeekClient({ apiKey: ep.apiKey, baseUrl: ep.baseUrl });
+  const client = createLLMClient(ep);
   const model = opts.model ?? DEFAULT_MODEL;
   const recentCommits = readRecentCommits();
 

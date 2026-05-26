@@ -57,7 +57,8 @@ import { pauseGate } from "../../core/pause-gate.js";
 import { autoResolveVerdict, shouldAutoResolveCheckpoint } from "../../core/pause-policy.js";
 import { formatHookOutcomeMessage, runHooks } from "../../hooks.js";
 import { t, tObj } from "../../i18n/index.js";
-import { CacheFirstLoop, DeepSeekClient, ImmutablePrefix } from "../../index.js";
+import { CacheFirstLoop, ImmutablePrefix } from "../../index.js";
+import { createLLMClient } from "../../llm-factory.js";
 import type { LoopEvent } from "../../loop.js";
 import {
   deleteSession,
@@ -976,7 +977,7 @@ function AppInner({
   const loop = useMemo(() => {
     if (loopRef.current) return loopRef.current;
     const ep = loadEndpoint();
-    const client = new DeepSeekClient({ apiKey: ep.apiKey, baseUrl: ep.baseUrl });
+    const client = createLLMClient(ep);
     // Register run_skill HERE (not in code.tsx / chat.tsx) because
     // subagent-runAs skills need the client + parent registry to
     // spawn child loops. Wiring lives in App.tsx so the same code

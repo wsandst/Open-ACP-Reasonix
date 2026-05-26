@@ -1,4 +1,4 @@
-/** Library reads only DEEPSEEK_API_KEY from env; the CLI bridges config.json → env var. */
+/** Library reads OPENROUTER_API_KEY / DEEPSEEK_API_KEY from env; the CLI bridges config.json → env var. */
 
 import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
@@ -635,7 +635,12 @@ export function saveLanguage(lang: LanguageCode, path: string = defaultConfigPat
   writeConfig(cfg, path);
 }
 
+/** Which upstream the LLM client targets. New providers append here; the factory
+ *  in src/llm-factory.ts maps each to a concrete client implementation. */
+export type Provider = "openrouter" | "deepseek";
+
 export interface ResolvedEndpoint {
+  provider: Provider;
   baseUrl: string | undefined;
   apiKey: string | undefined;
 }
@@ -646,18 +651,41 @@ export function resolveBaseUrlEnv(): string | undefined {
   return process.env.DEEPSEEK_BASE_URL || process.env.DEEPSEEK_API_BASE_URL || undefined;
 }
 
-// (baseUrl, apiKey) is a tuple: whichever source defines baseUrl owns apiKey too,
-// so a stale env DEEPSEEK_API_KEY doesn't bleed into a custom config baseUrl (#1631).
+function resolveOpenRouterBaseUrlEnv(): string | undefined {
+  return process.env.OPENROUTER_BASE_URL || process.env.OPENROUTER_API_BASE_URL || undefined;
+}
+
+// Resolution order:
+//   1. OPENROUTER_API_KEY in env  → OpenRouter wins (explicit opt-in).
+//   2. DEEPSEEK_BASE_URL in env   → DeepSeek with that custom base + env key.
+//   3. Config file baseUrl         → DeepSeek with config's baseUrl + apiKey
+//      (which sources own their apiKey to avoid #1631 leak).
+//   4. DEEPSEEK_API_KEY in env or config apiKey → DeepSeek at the default origin.
+// OpenRouter takes precedence because the fork's default target is OpenRouter
+// and a stale DEEPSEEK_API_KEY in the user's shell shouldn't silently override
+// an explicit OPENROUTER_API_KEY they just exported.
 export function loadEndpoint(path: string = defaultConfigPath()): ResolvedEndpoint {
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (openRouterKey) {
+    return {
+      provider: "openrouter",
+      apiKey: openRouterKey,
+      baseUrl: resolveOpenRouterBaseUrlEnv(),
+    };
+  }
   const envBaseUrl = resolveBaseUrlEnv();
   if (envBaseUrl) {
-    return { baseUrl: envBaseUrl, apiKey: process.env.DEEPSEEK_API_KEY };
+    return { provider: "deepseek", baseUrl: envBaseUrl, apiKey: process.env.DEEPSEEK_API_KEY };
   }
   const cfg = readConfig(path);
   if (cfg.baseUrl) {
-    return { baseUrl: cfg.baseUrl, apiKey: cfg.apiKey };
+    return { provider: "deepseek", baseUrl: cfg.baseUrl, apiKey: cfg.apiKey };
   }
-  return { baseUrl: undefined, apiKey: process.env.DEEPSEEK_API_KEY ?? cfg.apiKey };
+  return {
+    provider: "deepseek",
+    baseUrl: undefined,
+    apiKey: process.env.DEEPSEEK_API_KEY ?? cfg.apiKey,
+  };
 }
 
 export function loadApiKey(path: string = defaultConfigPath()): string | undefined {
@@ -669,8 +697,15 @@ export function loadBaseUrl(path: string = defaultConfigPath()): string | undefi
 }
 
 // Mirrors the resolved tuple into env so subprocess constructions see the same pair.
+// Bridges into the provider-appropriate env vars so a re-execed CLI / subagent
+// reconstructs the same endpoint without re-reading the config file.
 export function bridgeEndpointEnv(path: string = defaultConfigPath()): void {
   const ep = loadEndpoint(path);
+  if (ep.provider === "openrouter") {
+    if (ep.apiKey) process.env.OPENROUTER_API_KEY = ep.apiKey;
+    if (ep.baseUrl) process.env.OPENROUTER_BASE_URL = ep.baseUrl;
+    return;
+  }
   if (ep.apiKey) process.env.DEEPSEEK_API_KEY = ep.apiKey;
   if (ep.baseUrl) process.env.DEEPSEEK_BASE_URL = ep.baseUrl;
 }

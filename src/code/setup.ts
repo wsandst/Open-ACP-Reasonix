@@ -1,4 +1,4 @@
-import { DeepSeekClient } from "../client.js";
+import type { LLMClient } from "../client.js";
 import {
   type EditMode,
   loadEditMode,
@@ -13,6 +13,7 @@ import {
   searchEnabled,
 } from "../config.js";
 import { bootstrapSemanticSearchInCodeMode } from "../index/semantic/tool.js";
+import { createLLMClient } from "../llm-factory.js";
 import { ToolRegistry } from "../tools.js";
 import { registerChoiceTool } from "../tools/choice.js";
 import { registerCodeQueryTools } from "../tools/code-query.js";
@@ -96,11 +97,11 @@ export async function buildCodeToolset(opts: CodeToolsetOpts): Promise<CodeTools
   if (loadJavaSourceEnabled()) {
     registerJavaSourceTool(tools, { projectRoot: opts.rootDir });
   }
-  // Lazy: constructing DeepSeekClient throws when DEEPSEEK_API_KEY is unset,
-  // which would kill `reasonix code` before the setup wizard can prompt for
-  // one. Defer to first subagent dispatch — by then the user has either keyed
-  // in or we error per-call instead of at boot.
-  let subagentClient: DeepSeekClient | null = null;
+  // Lazy: constructing the LLM client throws when the API key is unset, which
+  // would kill `reasonix code` before the setup wizard can prompt for one.
+  // Defer to first subagent dispatch — by then the user has either keyed in or
+  // we error per-call instead of at boot.
+  let subagentClient: LLMClient | null = null;
   registerSkillTools(tools, {
     projectRoot: opts.rootDir,
     customSkillPaths: loadResolvedSkillPaths(opts.rootDir),
@@ -108,8 +109,7 @@ export async function buildCodeToolset(opts: CodeToolsetOpts): Promise<CodeTools
     onSkillInstalled: opts.onSkillInstalled,
     subagentRunner: async (skill, task, signal) => {
       if (!subagentClient) {
-        const ep = loadEndpoint();
-        subagentClient = new DeepSeekClient({ apiKey: ep.apiKey, baseUrl: ep.baseUrl });
+        subagentClient = createLLMClient(loadEndpoint());
       }
       const result = await spawnSubagent({
         client: subagentClient,

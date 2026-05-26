@@ -3,7 +3,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { DeepSeekClient, pickPrimaryBalance } from "../../client.js";
+import { type UserBalance, pickPrimaryBalance } from "../../client.js";
 import {
   defaultConfigPath,
   loadEndpoint,
@@ -16,6 +16,7 @@ import { loadHooks } from "../../hooks.js";
 import { t } from "../../i18n/index.js";
 import { indexExists } from "../../index/semantic/builder.js";
 import { checkOllamaStatus } from "../../index/semantic/ollama-launcher.js";
+import { createLLMClient } from "../../llm-factory.js";
 import { listSessions } from "../../memory/session.js";
 import { detectProxyUrl, matchesNoProxy, resolveNoProxy } from "../../net/proxy.js";
 import { resolveDataPath } from "../../tokenizer.js";
@@ -145,34 +146,26 @@ function fmtBytes(n: number): string {
 }
 
 async function checkApiKey(): Promise<Check> {
-  const fromEnv = process.env.DEEPSEEK_API_KEY;
-  if (fromEnv) {
+  const ep = loadEndpoint();
+  if (ep.apiKey) {
+    const envName = ep.provider === "openrouter" ? "OPENROUTER_API_KEY" : "DEEPSEEK_API_KEY";
+    const fromEnv =
+      ep.provider === "openrouter"
+        ? !!process.env.OPENROUTER_API_KEY
+        : !!process.env.DEEPSEEK_API_KEY;
     return {
       id: "api-key",
       label: "api key      ",
       level: "ok",
-      detail: "set via env DEEPSEEK_API_KEY",
+      detail: fromEnv ? `set via env ${envName}` : `from ${defaultConfigPath()}`,
     };
-  }
-  try {
-    const cfg = readConfig();
-    if (cfg.apiKey) {
-      return {
-        id: "api-key",
-        label: "api key      ",
-        level: "ok",
-        detail: `from ${defaultConfigPath()}`,
-      };
-    }
-  } catch {
-    /* fall through */
   }
   return {
     id: "api-key",
     label: "api key      ",
     level: "fail",
     detail:
-      "not set — `reasonix setup` to save one, or export DEEPSEEK_API_KEY. Get a key at https://platform.deepseek.com/api_keys",
+      "not set — export OPENROUTER_API_KEY (https://openrouter.ai/keys) or DEEPSEEK_API_KEY (https://platform.deepseek.com/api_keys); or run `reasonix setup`.",
   };
 }
 
@@ -210,8 +203,8 @@ async function checkConfig(): Promise<Check> {
 }
 
 async function checkApiReach(): Promise<Check> {
-  const key = process.env.DEEPSEEK_API_KEY ?? readConfig().apiKey;
-  if (!key) {
+  const ep = loadEndpoint();
+  if (!ep.apiKey) {
     return {
       id: "api-reach",
       label: "api reach    ",
@@ -220,21 +213,22 @@ async function checkApiReach(): Promise<Check> {
     };
   }
   try {
-    const client = new DeepSeekClient({ apiKey: key, baseUrl: loadEndpoint().baseUrl });
+    const client = createLLMClient(ep);
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 8_000);
-    let balance: Awaited<ReturnType<DeepSeekClient["getBalance"]>>;
+    let balance: UserBalance | null;
     try {
       balance = await client.getBalance({ signal: ctl.signal });
     } finally {
       clearTimeout(timer);
     }
     if (!balance) {
+      const probeEndpoint = ep.provider === "openrouter" ? "/credits" : "/user/balance";
       return {
         id: "api-reach",
         label: "api reach    ",
         level: "fail",
-        detail: "/user/balance returned null — auth failed or network blocked",
+        detail: `${probeEndpoint} returned null — auth failed or network blocked`,
       };
     }
     const summary = summarizeBalances(balance.balance_infos);

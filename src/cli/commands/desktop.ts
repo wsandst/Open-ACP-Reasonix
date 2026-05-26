@@ -88,7 +88,8 @@ import {
   takeQQPendingInteraction,
 } from "../../desktop/qq-turn-routing.js";
 import { loadDotenv } from "../../env.js";
-import { CacheFirstLoop, DeepSeekClient, ImmutablePrefix } from "../../index.js";
+import { CacheFirstLoop, ImmutablePrefix } from "../../index.js";
+import { createLLMClient } from "../../llm-factory.js";
 import { parseMcpSpec } from "../../mcp/spec.js";
 import {
   deleteSession,
@@ -955,7 +956,7 @@ function buildRuntimeFor(tab: Tab): RuntimeState {
   const toolset = tab.toolset;
   applyPlanMode(toolset.tools, loadEditMode());
   const ep = loadEndpoint();
-  const client = new DeepSeekClient({ apiKey: ep.apiKey, baseUrl: ep.baseUrl });
+  const client = createLLMClient(ep);
   const prefix = new ImmutablePrefix({ system: tab.system, toolSpecs: toolset.tools.specs() });
   const reasoningEffort = loadReasoningEffort();
   const loop = new CacheFirstLoop({

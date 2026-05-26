@@ -14,7 +14,8 @@ import {
 } from "../../config.js";
 import { loadDotenv } from "../../env.js";
 import { t } from "../../i18n/index.js";
-import { CacheFirstLoop, DeepSeekClient, ImmutablePrefix } from "../../index.js";
+import { CacheFirstLoop, ImmutablePrefix } from "../../index.js";
+import { createLLMClient } from "../../llm-factory.js";
 import { McpClient } from "../../mcp/client.js";
 import { preflightStdioSpec } from "../../mcp/preflight.js";
 import { bridgeMcpTools } from "../../mcp/registry.js";
@@ -140,7 +141,7 @@ export async function runCommand(opts: RunOptions): Promise<void> {
   }
 
   const ep = loadEndpoint();
-  const client = new DeepSeekClient({ apiKey: ep.apiKey, baseUrl: ep.baseUrl });
+  const client = createLLMClient(ep);
   const prefix = new ImmutablePrefix({
     system: opts.system,
     toolSpecs: tools?.specs(),
