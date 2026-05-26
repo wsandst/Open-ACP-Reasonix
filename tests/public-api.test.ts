@@ -141,6 +141,8 @@ const PUBLIC_API: readonly string[] = [
   "MemoryType",
   "MemoryWriteInput",
   "NeedsConfirmationError",
+  "OpenRouterClient",
+  "OpenRouterClientOptions",
   "PROJECT_MEMORY_FILE",
   "PROJECT_MEMORY_FILES",
   "PROJECT_MEMORY_MAX_CHARS",

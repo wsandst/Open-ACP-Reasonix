@@ -26,6 +26,7 @@ export class Usage {
       typeof u.total_tokens === "number" ||
       typeof u.prompt_cache_hit_tokens === "number" ||
       typeof u.prompt_cache_miss_tokens === "number" ||
+      typeof u.prompt_tokens_details?.cached_tokens === "number" ||
       typeof u.prompt_eval_count === "number" ||
       typeof u.eval_count === "number"
     );
@@ -35,7 +36,9 @@ export class Usage {
     const u = raw ?? {};
     const promptTokens = u.prompt_tokens ?? u.prompt_eval_count ?? 0;
     const completionTokens = u.completion_tokens ?? u.eval_count ?? 0;
-    const cacheHitTokens = u.prompt_cache_hit_tokens ?? 0;
+    // OpenAI / OpenRouter publish cache hits as `prompt_tokens_details.cached_tokens`;
+    // DeepSeek publishes them as the flat `prompt_cache_hit_tokens`. Accept either.
+    const cacheHitTokens = u.prompt_cache_hit_tokens ?? u.prompt_tokens_details?.cached_tokens ?? 0;
     const cacheMissTokens =
       u.prompt_cache_miss_tokens ?? Math.max(0, promptTokens - cacheHitTokens);
     return new Usage(

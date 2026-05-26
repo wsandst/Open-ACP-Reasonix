@@ -7,6 +7,8 @@ export type {
   LLMClient,
   StreamChunk,
 } from "./client.js";
+export { OpenRouterClient } from "./openrouter.js";
+export type { OpenRouterClientOptions } from "./openrouter.js";
 
 export {
   CacheFirstLoop,

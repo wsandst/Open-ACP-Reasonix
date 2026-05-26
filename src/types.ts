@@ -46,6 +46,10 @@ export interface RawUsage {
   total_tokens?: number;
   prompt_cache_hit_tokens?: number;
   prompt_cache_miss_tokens?: number;
+  /** OpenAI / OpenRouter nested form — `cached_tokens` is the prefix-cache hit count. */
+  prompt_tokens_details?: {
+    cached_tokens?: number;
+  };
   /** Ollama native API: input tokens processed. */
   prompt_eval_count?: number;
   /** Ollama native API: output tokens generated. */
