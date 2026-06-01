@@ -257,6 +257,7 @@ export class Eventizer {
       usage,
       costUsd,
     };
+    if (ev.stats?.model) out.model = ev.stats.model;
     if (ev.forcedSummary) out.forcedSummary = true;
     return out;
   }

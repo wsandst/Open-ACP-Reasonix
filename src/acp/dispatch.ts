@@ -83,6 +83,28 @@ export function dispatchKernelEvent(server: AcpServer, sessionId: string, ev: Ke
       });
       return;
     }
+    case "model.final": {
+      const u = ev.usage ?? {};
+      const promptTokens = u.prompt_tokens ?? 0;
+      const completionTokens = u.completion_tokens ?? 0;
+      const costUsd = ev.costUsd ?? 0;
+      // Skip empty wrap-up turns (no stats) so clients don't see zero rows.
+      if (promptTokens === 0 && completionTokens === 0 && costUsd === 0) return;
+      emit(server, {
+        sessionId,
+        update: {
+          sessionUpdate: "usage",
+          model: ev.model,
+          promptTokens,
+          completionTokens,
+          totalTokens: u.total_tokens ?? promptTokens + completionTokens,
+          promptCacheHitTokens: u.prompt_cache_hit_tokens ?? 0,
+          promptCacheMissTokens: u.prompt_cache_miss_tokens ?? 0,
+          costUsd,
+        },
+      });
+      return;
+    }
     default:
       return;
   }

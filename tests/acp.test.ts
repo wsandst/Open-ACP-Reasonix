@@ -321,6 +321,53 @@ describe("ACP kernel-event dispatch", () => {
     server.close();
   });
 
+  it("model.final emits a usage update with native cache-hit/miss tokens, model, and cost", async () => {
+    const { server, updates } = captureUpdates();
+    dispatchKernelEvent(
+      server,
+      "s1",
+      kev("model.final", {
+        content: "done",
+        model: "openai/gpt-4o-mini",
+        toolCalls: [],
+        usage: {
+          prompt_tokens: 120,
+          completion_tokens: 30,
+          total_tokens: 150,
+          prompt_cache_hit_tokens: 80,
+          prompt_cache_miss_tokens: 40,
+        },
+        costUsd: 0.000123,
+      } as never),
+    );
+    await wait(5);
+    expect(updates()).toEqual([
+      {
+        sessionUpdate: "usage",
+        model: "openai/gpt-4o-mini",
+        promptTokens: 120,
+        completionTokens: 30,
+        totalTokens: 150,
+        promptCacheHitTokens: 80,
+        promptCacheMissTokens: 40,
+        costUsd: 0.000123,
+      },
+    ]);
+    server.close();
+  });
+
+  it("model.final with no tokens and zero cost emits nothing (empty wrap-up turn)", async () => {
+    const { server, updates } = captureUpdates();
+    dispatchKernelEvent(
+      server,
+      "s1",
+      kev("model.final", { content: "", toolCalls: [], usage: {}, costUsd: 0 } as never),
+    );
+    await wait(5);
+    expect(updates()).toEqual([]);
+    server.close();
+  });
+
   it("toolKindFor classifies known tool names into ACP kinds", () => {
     expect(toolKindFor("read_file")).toBe("read");
     expect(toolKindFor("glob")).toBe("read");

@@ -111,6 +111,21 @@ export type SessionUpdate =
         priority: "high" | "medium" | "low";
         status: "pending" | "in_progress" | "completed";
       }>;
+    }
+  | {
+      // Per-turn usage + cost, emitted once at turn completion. Token fields
+      // use Reasonix's native cache-hit/miss accounting; `costUsd` is the
+      // provider-authoritative cost (live OpenRouter pricing). Not part of the
+      // base ACP spec — a Reasonix extension for clients that bill or display
+      // usage. Clients that don't care can ignore unknown sessionUpdate kinds.
+      sessionUpdate: "usage";
+      model?: string;
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+      promptCacheHitTokens: number;
+      promptCacheMissTokens: number;
+      costUsd: number;
     };
 
 export interface SessionUpdateParams {

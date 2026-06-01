@@ -42,6 +42,9 @@ export interface ModelFinalEvent extends EventBase {
   content: string;
   reasoningContent?: string;
   toolCalls: ReadonlyArray<ToolCall>;
+  /** Model that produced this turn (e.g. "openai/gpt-4o-mini"). Carried so
+   * usage telemetry can be attributed without consulting session context. */
+  model?: string;
   usage: RawUsage;
   costUsd: number;
   /** True iff this was the no-tools wrap-up after budget / abort / context guard. */
