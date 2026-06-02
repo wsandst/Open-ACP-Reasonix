@@ -47,6 +47,11 @@ export interface ModelFinalEvent extends EventBase {
   model?: string;
   usage: RawUsage;
   costUsd: number;
+  /** Session cumulative through this turn (turn count + total cost USD).
+   * Lets clients report a running session total alongside the per-turn
+   * delta without re-summing. */
+  sessionTurns?: number;
+  sessionCostUsd?: number;
   /** True iff this was the no-tools wrap-up after budget / abort / context guard. */
   forcedSummary?: boolean;
 }

@@ -101,6 +101,8 @@ export function dispatchKernelEvent(server: AcpServer, sessionId: string, ev: Ke
           promptCacheHitTokens: u.prompt_cache_hit_tokens ?? 0,
           promptCacheMissTokens: u.prompt_cache_miss_tokens ?? 0,
           costUsd,
+          sessionTurns: ev.sessionTurns ?? 0,
+          sessionCostUsd: ev.sessionCostUsd ?? costUsd,
         },
       });
       return;

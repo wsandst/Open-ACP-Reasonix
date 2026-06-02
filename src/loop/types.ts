@@ -1,5 +1,5 @@
 import type { RepairReport } from "../repair/index.js";
-import type { TurnStats } from "../telemetry/stats.js";
+import type { SessionSummary, TurnStats } from "../telemetry/stats.js";
 
 export type EventRole =
   | "assistant_delta"
@@ -40,6 +40,10 @@ export interface LoopEvent {
   /** Stable id for tool_start / tool pairs — also the inflight-set key. UI uses this as the card id so it can derive `running` from `loop.inflight.has(callId)` instead of trusting end-event delivery. */
   callId?: string;
   stats?: TurnStats;
+  /** Session cumulative through this turn — set alongside `stats` on
+   *  `assistant_final` so consumers can report running totals, not just
+   *  the per-turn delta. */
+  sessionStats?: SessionSummary;
   repair?: RepairReport;
   error?: string;
   /** Display-only — code-mode applier MUST skip SEARCH/REPLACE in forced-summary text. */

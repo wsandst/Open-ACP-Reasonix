@@ -120,12 +120,18 @@ export type SessionUpdate =
       // usage. Clients that don't care can ignore unknown sessionUpdate kinds.
       sessionUpdate: "usage";
       model?: string;
+      // Per-turn delta.
       promptTokens: number;
       completionTokens: number;
       totalTokens: number;
       promptCacheHitTokens: number;
       promptCacheMissTokens: number;
       costUsd: number;
+      // Session cumulative through this turn (running totals, incl. this
+      // turn). `sessionCostUsd` is the authoritative session total — a
+      // client can sum the per-turn `costUsd` deltas and cross-check it.
+      sessionTurns: number;
+      sessionCostUsd: number;
     };
 
 export interface SessionUpdateParams {

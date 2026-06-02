@@ -338,6 +338,8 @@ describe("ACP kernel-event dispatch", () => {
           prompt_cache_miss_tokens: 40,
         },
         costUsd: 0.000123,
+        sessionTurns: 3,
+        sessionCostUsd: 0.000456,
       } as never),
     );
     await wait(5);
@@ -351,6 +353,8 @@ describe("ACP kernel-event dispatch", () => {
         promptCacheHitTokens: 80,
         promptCacheMissTokens: 40,
         costUsd: 0.000123,
+        sessionTurns: 3,
+        sessionCostUsd: 0.000456,
       },
     ]);
     server.close();

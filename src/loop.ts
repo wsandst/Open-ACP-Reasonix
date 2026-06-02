@@ -905,6 +905,7 @@ export class CacheFirstLoop {
         role: "assistant_final",
         content: assistantContent,
         stats: turnStats,
+        sessionStats: this.stats.summary(),
         repair: report,
       };
 

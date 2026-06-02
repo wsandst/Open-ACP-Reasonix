@@ -258,6 +258,10 @@ export class Eventizer {
       costUsd,
     };
     if (ev.stats?.model) out.model = ev.stats.model;
+    if (ev.sessionStats) {
+      out.sessionTurns = ev.sessionStats.turns;
+      out.sessionCostUsd = ev.sessionStats.totalCostUsd;
+    }
     if (ev.forcedSummary) out.forcedSummary = true;
     return out;
   }
