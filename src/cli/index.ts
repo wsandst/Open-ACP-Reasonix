@@ -39,6 +39,7 @@ program
   .command("acp")
   .description("speak Agent Client Protocol (JSON-RPC) over stdio")
   .option("-m, --model <id>", "override the default model id")
+  .option("--effort <level>", "reasoning effort for this run (low|medium|high|max); overrides config")
   .option("--dir <path>", "root directory for filesystem tools (default: cwd)")
   .option("--transcript <path>", "append every loop event as JSONL for replay/debug")
   .option("--budget <usd>", "soft cap; warn at 80%, refuse at 100%", (v) => Number.parseFloat(v))
@@ -54,6 +55,7 @@ program
     const { acpCommand } = await import("./commands/acp.js");
     await acpCommand({
       model: opts.model,
+      effort: opts.effort,
       dir: opts.dir,
       transcript: opts.transcript,
       budgetUsd: parseBudgetFlag(opts.budget),

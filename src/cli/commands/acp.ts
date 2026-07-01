@@ -25,7 +25,9 @@ import { codeSystemPrompt } from "../../code/prompt.js";
 import { buildCodeToolset } from "../../code/setup.js";
 import {
   DEFAULT_MODEL,
+  type ReasoningEffort,
   bridgeEndpointEnv,
+  isReasoningEffort,
   loadApiKey,
   loadEditMode,
   loadEndpoint,
@@ -54,6 +56,9 @@ import { VERSION } from "../../version.js";
 
 export interface AcpOptions {
   model?: string;
+  /** Reasoning effort for every session this server spawns (low|medium|high|max).
+   * Overrides the config-file value; invalid values fall back to it. */
+  effort?: string;
   dir?: string;
   budgetUsd?: number;
   transcript?: string;
@@ -177,12 +182,14 @@ export function disabledToolNamesFromEnv(env: NodeJS.ProcessEnv = process.env): 
 async function buildSession(opts: {
   rootDir: string;
   modelOverride?: string;
+  effortOverride?: string;
   budgetUsd?: number;
   mcpSpecs?: string[];
   mcpPrefix?: string;
   systemAppend?: string;
 }): Promise<Session> {
   const model = opts.modelOverride || loadModel() || DEFAULT_MODEL;
+  const effort = resolveEffort(opts.effortOverride);
   const toolset = await buildCodeToolset({ rootDir: opts.rootDir });
   // Drop unwanted built-ins BEFORE bridging MCP / building the prefix so their
   // specs stay out of the cache key and the model never sees them. Host-driven
@@ -214,6 +221,9 @@ async function buildSession(opts: {
     prefix,
     tools: toolset.tools,
     model,
+    // Without this the loop silently ran at its own internal default ("high")
+    // and ignored both the config file and any host override.
+    reasoningEffort: effort,
     budgetUsd: opts.budgetUsd,
     session: `acp-${timestampSuffix()}`,
   });
@@ -228,10 +238,22 @@ async function buildSession(opts: {
     ctx: {
       model,
       prefixHash: prefix.fingerprint,
-      reasoningEffort: loadReasoningEffort(),
+      reasoningEffort: effort,
     },
     aborter: null,
   };
+}
+
+/** The session's reasoning effort: a valid `--effort` flag wins; anything else
+ * (unset / typo) falls back to the config file (which itself defaults "high"). */
+export function resolveEffort(override: string | undefined): ReasoningEffort {
+  if (isReasoningEffort(override)) return override;
+  if (override) {
+    process.stderr.write(
+      `reasonix: ignoring invalid --effort "${override}" (want low|medium|high|max)\n`,
+    );
+  }
+  return loadReasoningEffort();
 }
 
 export async function acpCommand(opts: AcpOptions): Promise<void> {
@@ -293,6 +315,7 @@ export async function acpCommand(opts: AcpOptions): Promise<void> {
     const session = await buildSession({
       rootDir,
       modelOverride: opts.model,
+      effortOverride: opts.effort,
       budgetUsd: opts.budgetUsd,
       mcpSpecs: opts.mcpSpecs,
       mcpPrefix: opts.mcpPrefix,
