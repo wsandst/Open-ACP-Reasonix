@@ -42,6 +42,7 @@ import { t } from "../../i18n/index.js";
 import { CacheFirstLoop, ImmutablePrefix } from "../../index.js";
 import { createLLMClient } from "../../llm-factory.js";
 import { McpClient } from "../../mcp/client.js";
+import { loadDotMcpJson } from "../../mcp/dot-mcp-json.js";
 import { formatMcpLifecycleEvent } from "../../mcp/format/lifecycle.js";
 import { formatMcpSlowToast } from "../../mcp/format/slow-toast.js";
 import { preflightStdioSpec } from "../../mcp/preflight.js";
@@ -97,9 +98,17 @@ export async function loadMcpServers(
   workspaceDir: string = process.cwd(),
 ): Promise<McpClient[]> {
   const clients: McpClient[] = [];
-  if (specs.length === 0) return clients;
   const cfg = readConfig();
+  // Merge a project-level .mcp.json (Claude-style `mcpServers`) into the config
+  // so HTTP servers WITH auth headers can be declared per-workspace. This is the
+  // only way to reach a server behind an auth gateway: the `--mcp` CLI spec
+  // carries a URL but no headers, whereas an mcpServers entry carries both.
+  const dotMcp = loadDotMcpJson(workspaceDir);
+  if (dotMcp) {
+    cfg.mcpServers = { ...(cfg.mcpServers ?? {}), ...dotMcp };
+  }
   const normalizedSpecs = normalizeMcpConfig(cfg, specs);
+  if (normalizedSpecs.length === 0) return clients;
   for (const spec of normalizedSpecs) {
     let label = "anon";
     let mcp: McpClient | undefined;
