@@ -162,6 +162,18 @@ function resolveDir(raw: string | undefined, fallback: string): string {
   return abs;
 }
 
+/** Built-in tool names the host asked to drop, from REASONIX_DISABLE_TOOLS
+ * (comma/whitespace-separated). Empty when unset — the fork ships the full
+ * toolset by default; embedders opt out of specific tools. */
+export function disabledToolNamesFromEnv(env: NodeJS.ProcessEnv = process.env): string[] {
+  const raw = env.REASONIX_DISABLE_TOOLS;
+  if (!raw) return [];
+  return raw
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 async function buildSession(opts: {
   rootDir: string;
   modelOverride?: string;
@@ -172,6 +184,16 @@ async function buildSession(opts: {
 }): Promise<Session> {
   const model = opts.modelOverride || loadModel() || DEFAULT_MODEL;
   const toolset = await buildCodeToolset({ rootDir: opts.rootDir });
+  // Drop unwanted built-ins BEFORE bridging MCP / building the prefix so their
+  // specs stay out of the cache key and the model never sees them. Host-driven
+  // via REASONIX_DISABLE_TOOLS (comma-separated). Used by embedders that own a
+  // capability elsewhere (e.g. an external memory store) or run headless where
+  // an interactive tool (ask_choice) has no operator to answer it.
+  for (const name of disabledToolNamesFromEnv()) {
+    if (toolset.tools.unregister(name)) {
+      process.stderr.write(`reasonix: disabled built-in tool "${name}" (REASONIX_DISABLE_TOOLS)\n`);
+    }
+  }
   // Bridge MCP tools BEFORE building the prefix so their specs make it into the cache key.
   const mcpClients = await loadMcpServers(
     toolset.tools,
