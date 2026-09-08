@@ -262,7 +262,7 @@ export async function acpCommand(opts: AcpOptions): Promise<void> {
 
   const defaultDir = resolveDir(opts.dir, process.cwd());
   const sessions = new Map<string, Session>();
-  const sessionContext = new AsyncLocalStorage<string>();
+  const sessionContext = new AsyncLocalStorage<{ sessionId: string; sourceTurnId?: string }>();
   const server = new AcpServer();
 
   let transcriptStream: WriteStream | null = null;
@@ -283,13 +283,13 @@ export async function acpCommand(opts: AcpOptions): Promise<void> {
       pauseGate.resolve(req.id, auto);
       return;
     }
-    const activeSessionId = sessionContext.getStore();
-    if (!activeSessionId || !sessions.has(activeSessionId)) {
+    const activeContext = sessionContext.getStore();
+    if (!activeContext || !sessions.has(activeContext.sessionId)) {
       pauseGate.cancel(req.id);
       return;
     }
     void (async () => {
-      const verdict = await requestPermissionForGate(server, activeSessionId, req);
+      const verdict = await requestPermissionForGate(server, activeContext.sessionId, req);
       pauseGate.resolve(req.id, verdict);
     })();
   });
@@ -344,7 +344,7 @@ export async function acpCommand(opts: AcpOptions): Promise<void> {
     session.aborter = new AbortController();
     let stopReason: StopReason = "end_turn";
     try {
-      await sessionContext.run(session.id, async () => {
+      await sessionContext.run({ sessionId: session.id, sourceTurnId: params.sourceTurnId }, async () => {
         for await (const ev of session.loop.step(text)) {
           if (session.aborter?.signal.aborted) {
             stopReason = "cancelled";
@@ -361,7 +361,9 @@ export async function acpCommand(opts: AcpOptions): Promise<void> {
             );
           }
           for (const kev of session.eventizer.consume(ev, session.ctx)) {
-            dispatchKernelEvent(server, session.id, kev);
+            // Keep the prompt's immutable async context through delayed model.final
+            // notifications; never derive attribution from a mutable active turn.
+            dispatchKernelEvent(server, session.id, kev, sessionContext.getStore()?.sourceTurnId);
             if (kev.type === "error") stopReason = "error";
           }
         }

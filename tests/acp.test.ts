@@ -360,6 +360,25 @@ describe("ACP kernel-event dispatch", () => {
     server.close();
   });
 
+  it("model.final preserves the originating optional source turn on usage", async () => {
+    const { server, updates } = captureUpdates();
+    dispatchKernelEvent(
+      server,
+      "s1",
+      kev("model.final", {
+        content: "done",
+        model: "openai/gpt-4o-mini",
+        toolCalls: [],
+        usage: { prompt_tokens: 1, completion_tokens: 2 },
+        costUsd: 0.001,
+      } as never),
+      "t1",
+    );
+    await wait(5);
+    expect(updates()[0]).toMatchObject({ sessionUpdate: "usage", sourceTurnId: "t1" });
+    server.close();
+  });
+
   it("model.final with no tokens and zero cost emits nothing (empty wrap-up turn)", async () => {
     const { server, updates } = captureUpdates();
     dispatchKernelEvent(

@@ -17,7 +17,12 @@ function tryParseJson(raw: string): unknown {
 }
 
 /** Stateless mapping from one kernel event to (zero or more) ACP session/update notifications. */
-export function dispatchKernelEvent(server: AcpServer, sessionId: string, ev: KernelEvent): void {
+export function dispatchKernelEvent(
+  server: AcpServer,
+  sessionId: string,
+  ev: KernelEvent,
+  sourceTurnId?: string,
+): void {
   switch (ev.type) {
     case "model.delta": {
       if (!ev.text) return;
@@ -94,6 +99,7 @@ export function dispatchKernelEvent(server: AcpServer, sessionId: string, ev: Ke
         sessionId,
         update: {
           sessionUpdate: "usage",
+          ...(sourceTurnId ? { sourceTurnId } : {}),
           model: ev.model,
           promptTokens,
           completionTokens,

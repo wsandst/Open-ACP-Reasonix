@@ -73,6 +73,8 @@ export type ContentBlock =
 export interface SessionPromptParams {
   sessionId: string;
   prompt: ContentBlock[];
+  /** Optional client turn identity returned only on Reasonix's custom usage update. */
+  sourceTurnId?: string;
 }
 
 export type StopReason = "end_turn" | "tool_use_complete" | "cancelled" | "error";
@@ -119,6 +121,8 @@ export type SessionUpdate =
       // base ACP spec — a Reasonix extension for clients that bill or display
       // usage. Clients that don't care can ignore unknown sessionUpdate kinds.
       sessionUpdate: "usage";
+      /** Echoes the originating optional session/prompt sourceTurnId. */
+      sourceTurnId?: string;
       model?: string;
       // Per-turn delta.
       promptTokens: number;
