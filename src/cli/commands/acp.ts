@@ -7,6 +7,7 @@ import { dispatchKernelEvent } from "../../acp/dispatch.js";
 import { requestPermissionForGate } from "../../acp/gates.js";
 import {
   ACP_PROTOCOL_VERSION,
+  type AcpMcpServer,
   type ContentBlock,
   ERR_INVALID_PARAMS,
   type InitializeParams,
@@ -25,6 +26,7 @@ import { codeSystemPrompt } from "../../code/prompt.js";
 import { buildCodeToolset } from "../../code/setup.js";
 import {
   DEFAULT_MODEL,
+  type McpServerConfig,
   type ReasoningEffort,
   bridgeEndpointEnv,
   isReasoningEffort,
@@ -95,12 +97,37 @@ function resolveMcpPrefix(
   return "";
 }
 
+/** Converts ACP session/new `mcpServers` into config-shaped entries. Only
+ * HTTP and SSE servers are accepted (the transports this agent advertises);
+ * stdio entries and malformed items are skipped. */
+export function sessionMcpServersToConfig(
+  servers: AcpMcpServer[] | undefined,
+): Record<string, McpServerConfig> {
+  const out: Record<string, McpServerConfig> = {};
+  if (!Array.isArray(servers)) return out;
+  for (const server of servers) {
+    if (!server || typeof server !== "object") continue;
+    if (server.type !== "http" && server.type !== "sse") continue;
+    if (typeof server.name !== "string" || !server.name) continue;
+    if (typeof server.url !== "string" || !server.url) continue;
+    const headers: Record<string, string> = {};
+    for (const header of Array.isArray(server.headers) ? server.headers : []) {
+      if (header && typeof header.name === "string" && typeof header.value === "string") {
+        headers[header.name] = header.value;
+      }
+    }
+    out[server.name] = { type: server.type, url: server.url, headers };
+  }
+  return out;
+}
+
 // Mirrors run.ts:81-142.
 export async function loadMcpServers(
   tools: import("../../tools.js").ToolRegistry,
   specs: string[],
   globalPrefix: string | undefined,
   workspaceDir: string = process.cwd(),
+  sessionServers: Record<string, McpServerConfig> = {},
 ): Promise<McpClient[]> {
   const clients: McpClient[] = [];
   const cfg = readConfig();
@@ -111,6 +138,18 @@ export async function loadMcpServers(
   const dotMcp = loadDotMcpJson(workspaceDir);
   if (dotMcp) {
     cfg.mcpServers = { ...(cfg.mcpServers ?? {}), ...dotMcp };
+  }
+  // Servers the ACP client handed to this session (session/new mcpServers)
+  // live only in memory for this session. Operator-configured names win a
+  // collision, so a client can add servers but never shadow the operator's.
+  for (const [name, server] of Object.entries(sessionServers)) {
+    if (cfg.mcpServers && Object.hasOwn(cfg.mcpServers, name)) {
+      process.stderr.write(
+        `reasonix: session MCP server "${name}" ignored; the operator config defines it\n`,
+      );
+      continue;
+    }
+    cfg.mcpServers = { ...(cfg.mcpServers ?? {}), [name]: server };
   }
   const normalizedSpecs = normalizeMcpConfig(cfg, specs);
   if (normalizedSpecs.length === 0) return clients;
@@ -186,6 +225,7 @@ async function buildSession(opts: {
   budgetUsd?: number;
   mcpSpecs?: string[];
   mcpPrefix?: string;
+  sessionMcpServers?: Record<string, McpServerConfig>;
   systemAppend?: string;
 }): Promise<Session> {
   const model = opts.modelOverride || loadModel() || DEFAULT_MODEL;
@@ -207,6 +247,7 @@ async function buildSession(opts: {
     opts.mcpSpecs ?? [],
     opts.mcpPrefix,
     opts.rootDir,
+    opts.sessionMcpServers,
   );
   const system = codeSystemPrompt(opts.rootDir, {
     hasSemanticSearch: toolset.semantic.enabled,
@@ -303,7 +344,7 @@ export async function acpCommand(opts: AcpOptions): Promise<void> {
       agentCapabilities: {
         loadSession: false,
         promptCapabilities: { image: false, audio: false, embeddedContext: true },
-        mcpCapabilities: { http: false, sse: false },
+        mcpCapabilities: { http: true, sse: true },
       },
       agentInfo: { name: "reasonix", title: "Reasonix", version: VERSION },
       authMethods: [],
@@ -319,6 +360,7 @@ export async function acpCommand(opts: AcpOptions): Promise<void> {
       budgetUsd: opts.budgetUsd,
       mcpSpecs: opts.mcpSpecs,
       mcpPrefix: opts.mcpPrefix,
+      sessionMcpServers: sessionMcpServersToConfig(params?.mcpServers),
       systemAppend: process.env.REASONIX_ACP_SYSTEM_APPEND || undefined,
     });
     sessions.set(session.id, session);

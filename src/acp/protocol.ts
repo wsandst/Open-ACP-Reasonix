@@ -50,14 +50,20 @@ export interface InitializeResult {
   authMethods: never[];
 }
 
+/** ACP `McpServer` variants. HTTP and SSE are honoured when the agent
+ * advertises the matching `mcpCapabilities`; stdio entries are ignored. */
+export interface AcpNameValue {
+  name: string;
+  value: string;
+}
+
+export type AcpMcpServer =
+  | { type: "http" | "sse"; name: string; url: string; headers?: AcpNameValue[] }
+  | { type?: undefined; name: string; command: string; args?: string[]; env?: AcpNameValue[] };
+
 export interface SessionNewParams {
   cwd?: string;
-  mcpServers?: Array<{
-    name: string;
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-  }>;
+  mcpServers?: AcpMcpServer[];
 }
 
 export interface SessionNewResult {

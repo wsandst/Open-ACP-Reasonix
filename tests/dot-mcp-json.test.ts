@@ -62,4 +62,22 @@ describe("loadDotMcpJson", () => {
     const out = loadDotMcpJson(root);
     expect(Object.keys(out!)).toEqual(["good"]);
   });
+
+  it("skips entries a pre-isolation Iris runtime wrote (X-Iris-Gateway: managed)", () => {
+    writeFileSync(
+      join(root, DOT_MCP_JSON),
+      JSON.stringify({
+        mcpServers: {
+          operator: { type: "http", url: "https://example.com/mcp" },
+          stale: {
+            type: "http",
+            url: "http://127.0.0.1:41234/mcp/mcp/stale",
+            headers: { "X-Iris-Gateway": "managed", Authorization: "Bearer other-session" },
+          },
+        },
+      }),
+      "utf8",
+    );
+    expect(Object.keys(loadDotMcpJson(root) ?? {})).toEqual(["operator"]);
+  });
 });

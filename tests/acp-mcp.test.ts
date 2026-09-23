@@ -1,3 +1,6 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
@@ -69,14 +72,50 @@ describe("acp --mcp loader", () => {
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   });
 
-  async function callLoader(specs: string[], prefix?: string) {
+  async function callLoader(
+    specs: string[],
+    prefix?: string,
+    sessionServers?: Record<string, import("../src/config.js").McpServerConfig>,
+  ) {
     vi.resetModules();
     const { loadMcpServers } = await import("../src/cli/commands/acp.js");
     const { ToolRegistry } = await import("../src/tools.js");
     const tools = new ToolRegistry();
-    const clients = await loadMcpServers(tools, specs, prefix);
+    const clients = await loadMcpServers(
+      tools,
+      specs,
+      prefix,
+      mkdtempSync(join(tmpdir(), "reasonix-acp-mcp-")),
+      sessionServers,
+    );
     return { clients, tools };
   }
+
+  it("loads session/new HTTP servers alongside operator config", async () => {
+    mocks.readConfigMock.mockReturnValue({
+      mcpDisabled: [],
+      mcpServers: { operator: { type: "http", url: "http://user.example/op" } },
+    } as never);
+    const { clients } = await callLoader([], undefined, {
+      gate: { type: "http", url: "http://127.0.0.1:4000/session/s/mcp/gate", headers: {} },
+    });
+    expect(clients).toHaveLength(2);
+    const names = mocks.bridgeMock.mock.calls.map(
+      ([, opts]) => (opts as { serverName: string }).serverName,
+    );
+    expect(names.sort()).toEqual(["gate", "operator"]);
+  });
+
+  it("never lets a session server shadow an operator server", async () => {
+    mocks.readConfigMock.mockReturnValue({
+      mcpDisabled: [],
+      mcpServers: { gate: { type: "http", url: "http://user.example/op" } },
+    } as never);
+    const { clients } = await callLoader([], undefined, {
+      gate: { type: "http", url: "http://127.0.0.1:4000/session/s/mcp/gate", headers: {} },
+    });
+    expect(clients).toHaveLength(1);
+  });
 
   it("bridges every spec with its name as the tool prefix", async () => {
     const { clients } = await callLoader(["fs=cmd1 a", "db=cmd2 b"]);
@@ -137,5 +176,32 @@ describe("acp --mcp loader", () => {
     expect(clients).toEqual([]);
     expect(mocks.bridgeMock).not.toHaveBeenCalled();
     expect(mocks.initializeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("session/new mcpServers conversion", () => {
+  it("keeps http/sse servers with headers and drops stdio or malformed entries", async () => {
+    const { sessionMcpServersToConfig } = await import("../src/cli/commands/acp.js");
+    const out = sessionMcpServersToConfig([
+      {
+        type: "http",
+        name: "gate",
+        url: "http://127.0.0.1:4000/session/s/mcp/gate",
+        headers: [{ name: "Authorization", value: "Bearer local" }],
+      },
+      { type: "sse", name: "events", url: "http://127.0.0.1:4000/sse" },
+      { name: "local", command: "node", args: ["server.js"] },
+      { type: "http", name: "", url: "http://x" },
+      { type: "http", name: "nourl", url: "" },
+    ] as never);
+    expect(out).toEqual({
+      gate: {
+        type: "http",
+        url: "http://127.0.0.1:4000/session/s/mcp/gate",
+        headers: { Authorization: "Bearer local" },
+      },
+      events: { type: "sse", url: "http://127.0.0.1:4000/sse", headers: {} },
+    });
+    expect(sessionMcpServersToConfig(undefined)).toEqual({});
   });
 });
