@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => {
   }));
   const preflightMock = vi.fn(() => undefined);
   const readConfigMock = vi.fn(() => ({ mcpDisabled: [] as string[] }));
+  const transportSpecs: Array<{ name?: string; url?: string }> = [];
 
   class FakeMcpClient {
     async initialize() {
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => {
     bridgeMock,
     preflightMock,
     readConfigMock,
+    transportSpecs,
     FakeMcpClient,
     FakeTransport,
   };
@@ -54,7 +56,10 @@ vi.mock("../src/mcp/preflight.js", () => ({
 }));
 
 vi.mock("../src/mcp/transport-from-spec.js", () => ({
-  buildTransportFromSpec: () => new mocks.FakeTransport(),
+  buildTransportFromSpec: (spec: { name?: string; url?: string }) => {
+    mocks.transportSpecs.push({ name: spec.name, url: spec.url });
+    return new mocks.FakeTransport();
+  },
 }));
 
 describe("acp --mcp loader", () => {
@@ -65,6 +70,7 @@ describe("acp --mcp loader", () => {
     mocks.preflightMock.mockReset();
     mocks.readConfigMock.mockReset();
     mocks.readConfigMock.mockReturnValue({ mcpDisabled: [] });
+    mocks.transportSpecs.length = 0;
     mocks.initializeMock.mockImplementation(async () => undefined);
     mocks.bridgeMock.mockImplementation(async (_c: unknown, opts: { namePrefix?: string }) => ({
       registeredNames: [`${opts.namePrefix ?? ""}echo`],
@@ -106,15 +112,28 @@ describe("acp --mcp loader", () => {
     expect(names.sort()).toEqual(["gate", "operator"]);
   });
 
-  it("never lets a session server shadow an operator server", async () => {
+  it("lets a session server replace a same-named operator server", async () => {
     mocks.readConfigMock.mockReturnValue({
       mcpDisabled: [],
-      mcpServers: { gate: { type: "http", url: "http://user.example/op" } },
+      mcpServers: {
+        gate: { type: "http", url: "http://user.example/op", headers: { Authorization: "Bearer static" } },
+        other: { type: "http", url: "http://user.example/other" },
+      },
     } as never);
     const { clients } = await callLoader([], undefined, {
       gate: { type: "http", url: "http://127.0.0.1:4000/session/s/mcp/gate", headers: {} },
     });
-    expect(clients).toHaveLength(1);
+    expect(clients).toHaveLength(2);
+    const names = mocks.bridgeMock.mock.calls.map(
+      ([, opts]) => (opts as { serverName: string }).serverName,
+    );
+    expect(names.sort()).toEqual(["gate", "other"]);
+    expect(mocks.transportSpecs.find((spec) => spec.name === "gate")?.url).toBe(
+      "http://127.0.0.1:4000/session/s/mcp/gate",
+    );
+    const stderr = vi.mocked(process.stderr.write).mock.calls.map(([chunk]) => String(chunk)).join("");
+    expect(stderr).toContain('operator MCP server "gate" shadowed');
+    expect(stderr).not.toContain("Bearer static");
   });
 
   it("bridges every spec with its name as the tool prefix", async () => {

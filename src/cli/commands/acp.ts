@@ -140,14 +140,16 @@ export async function loadMcpServers(
     cfg.mcpServers = { ...(cfg.mcpServers ?? {}), ...dotMcp };
   }
   // Servers the ACP client handed to this session (session/new mcpServers)
-  // live only in memory for this session. Operator-configured names win a
-  // collision, so a client can add servers but never shadow the operator's.
+  // live only in memory for this session. They win a name collision with an
+  // operator-configured server: the client (Iris) grants them through its
+  // gateway, and a same-named local entry must not silently bypass that
+  // gateway's approval, policy and audit. The operator's files are untouched,
+  // so runs outside the ACP client still load the operator entry.
   for (const [name, server] of Object.entries(sessionServers)) {
     if (cfg.mcpServers && Object.hasOwn(cfg.mcpServers, name)) {
       process.stderr.write(
-        `reasonix: session MCP server "${name}" ignored; the operator config defines it\n`,
+        `reasonix: operator MCP server "${name}" shadowed by the session server of the same name\n`,
       );
-      continue;
     }
     cfg.mcpServers = { ...(cfg.mcpServers ?? {}), [name]: server };
   }
