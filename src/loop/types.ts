@@ -33,6 +33,9 @@ export interface LoopEvent {
   toolArgs?: string;
   /** Cumulative arguments-string length for `role === "tool_call_delta"`. */
   toolCallArgsChars?: number;
+  /** Arguments text appended since the previous `tool_call_delta` for this index;
+   *  concatenated in order these rebuild the exact arguments string. */
+  argumentsDelta?: string;
   /** Zero-based index of the tool call this delta belongs to (multi-tool progress). */
   toolCallIndex?: number;
   /** Count of tool calls whose args have parsed as valid JSON (UI progress, not dispatch gate). */

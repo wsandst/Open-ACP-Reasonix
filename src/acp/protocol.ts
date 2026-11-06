@@ -113,6 +113,16 @@ export type SessionUpdate =
       content?: Array<{ type: "content"; content: { type: "text"; text: string } }>;
     }
   | {
+      // Raw arguments JSON text the model appended to a tool call that is
+      // still streaming; concatenated in order it rebuilds the eventual
+      // tool_call's rawInput. A Reasonix extension like `usage` — clients that
+      // don't stream tool input ignore it.
+      sessionUpdate: "tool_input_delta";
+      toolCallId: string;
+      title: string;
+      delta: string;
+    }
+  | {
       sessionUpdate: "plan";
       entries: Array<{
         content: string;

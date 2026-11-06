@@ -46,6 +46,18 @@ export function dispatchKernelEvent(
       });
       return;
     }
+    case "tool.input_delta": {
+      emit(server, {
+        sessionId,
+        update: {
+          sessionUpdate: "tool_input_delta",
+          toolCallId: ev.callId,
+          title: ev.name,
+          delta: ev.delta,
+        },
+      });
+      return;
+    }
     case "tool.intent": {
       emit(server, {
         sessionId,

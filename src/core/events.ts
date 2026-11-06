@@ -62,6 +62,14 @@ export interface ToolPreparingEvent extends EventBase {
   name: string;
 }
 
+/** Raw arguments JSON text the model appended to a preparing tool call. */
+export interface ToolInputDeltaEvent extends EventBase {
+  type: "tool.input_delta";
+  callId: string;
+  name: string;
+  delta: string;
+}
+
 export interface ToolIntentEvent extends EventBase {
   type: "tool.intent";
   callId: string;
@@ -243,6 +251,7 @@ export type Event =
   | ModelDeltaEvent
   | ModelFinalEvent
   | ToolPreparingEvent
+  | ToolInputDeltaEvent
   | ToolIntentEvent
   | ToolDispatchedEvent
   | ToolDeniedEvent

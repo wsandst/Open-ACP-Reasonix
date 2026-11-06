@@ -110,6 +110,49 @@ describe("Eventizer.consume", () => {
     expect(tcdOut).toEqual([]);
   });
 
+  it("tool_call_delta argument fragments become tool.input_delta on the preparing callId", () => {
+    const e = new Eventizer();
+    e.consume(lev({ turn: 1 }), ctx);
+    const first = e.consume(
+      lev({
+        turn: 1,
+        role: "tool_call_delta",
+        toolName: "stage_present",
+        toolCallIndex: 0,
+        argumentsDelta: '{"body":"The ',
+      }),
+      ctx,
+    );
+    const second = e.consume(
+      lev({
+        turn: 1,
+        role: "tool_call_delta",
+        toolName: "stage_present",
+        toolCallIndex: 0,
+        argumentsDelta: 'rain"}',
+      }),
+      ctx,
+    );
+    expect(first.map((ev) => ev.type)).toEqual(["tool.preparing", "tool.input_delta"]);
+    expect(second.map((ev) => ev.type)).toEqual(["tool.input_delta"]);
+    const preparing = first[0] as { callId: string };
+    const deltas = [first[1], second[0]] as Array<{ callId: string; name: string; delta: string }>;
+    expect(
+      deltas.every((ev) => ev.callId === preparing.callId && ev.name === "stage_present"),
+    ).toBe(true);
+    expect(deltas.map((ev) => ev.delta).join("")).toBe('{"body":"The rain"}');
+    const intent = e.consume(
+      lev({
+        turn: 1,
+        role: "tool_start",
+        toolName: "stage_present",
+        toolArgs: '{"body":"The rain"}',
+      }),
+      ctx,
+    );
+    expect((intent[0] as { callId: string }).callId).toBe(preparing.callId);
+  });
+
   it("warning containing escalation language maps to policy.escalated", () => {
     const e = new Eventizer();
     e.consume(lev({ turn: 1 }), ctx);

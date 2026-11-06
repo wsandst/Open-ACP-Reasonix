@@ -1401,10 +1401,10 @@ describe("CacheFirstLoop (streaming) — tool_call_delta emission", () => {
       maxToolIters: 1,
     });
 
-    const deltas: Array<{ name?: string; chars?: number }> = [];
+    const deltas: Array<{ name?: string; chars?: number; text?: string }> = [];
     for await (const ev of loop.step("do it")) {
       if (ev.role === "tool_call_delta") {
-        deltas.push({ name: ev.toolName, chars: ev.toolCallArgsChars });
+        deltas.push({ name: ev.toolName, chars: ev.toolCallArgsChars, text: ev.argumentsDelta });
       }
       if (ev.role === "tool_start") break;
     }
@@ -1412,6 +1412,9 @@ describe("CacheFirstLoop (streaming) — tool_call_delta emission", () => {
     expect(deltas.length).toBeGreaterThanOrEqual(2);
     expect(deltas[0]!.name).toBe("edit_file");
     expect(deltas[deltas.length - 1]!.chars).toBeGreaterThan(deltas[0]!.chars!);
+    expect(deltas.map((d) => d.text ?? "").join("")).toBe(
+      '{"path":"a.txt","search":"old","replace":"new"}',
+    );
   });
 
   it("yields reasoning before content when a chunk carries both fields", async () => {

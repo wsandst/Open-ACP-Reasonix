@@ -31,6 +31,8 @@ export async function* streamModelResponse(
   let usage: Usage | null = null;
   const callBuf: Map<number, ToolCall> = new Map();
   const readyIndices = new Set<number>();
+  /** Arguments chars already carried on a yielded tool_call_delta, per index. */
+  const yieldedArgs = new Map<number, number>();
 
   for await (const chunk of client.stream({
     model,
@@ -79,12 +81,16 @@ export async function* streamModelResponse(
       }
 
       if (cur.function.name) {
+        const args = cur.function.arguments ?? "";
+        const argumentsDelta = args.slice(yieldedArgs.get(d.index) ?? 0);
+        yieldedArgs.set(d.index, args.length);
         yield {
           turn,
           role: "tool_call_delta",
           content: "",
           toolName: cur.function.name,
-          toolCallArgsChars: (cur.function.arguments ?? "").length,
+          toolCallArgsChars: args.length,
+          ...(argumentsDelta ? { argumentsDelta } : {}),
           toolCallIndex: d.index,
           toolCallReadyCount: readyIndices.size,
         };

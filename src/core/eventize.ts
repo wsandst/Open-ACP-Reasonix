@@ -16,6 +16,7 @@ import type {
   ToolConfirmAlwaysAllowEvent,
   ToolConfirmDenyEvent,
   ToolDispatchedEvent,
+  ToolInputDeltaEvent,
   ToolIntentEvent,
   ToolPreparingEvent,
   ToolResultEvent,
@@ -38,12 +39,15 @@ export class Eventizer {
   private inflightCallIds: string[] = [];
   /** Per-turn dedupe so each toolCallIndex emits exactly one tool.preparing. */
   private announcedToolIdx = new Set<string>();
+  /** Per-turn toolCallIndex → callId, so argument deltas join their tool call. */
+  private callIdByToolIdx = new Map<string, string>();
 
   consume(ev: LoopEvent, ctx: EventizeContext): Event[] {
     const out: Event[] = [];
     if (ev.turn !== this.lastTurn) {
       this.lastTurn = ev.turn;
       this.announcedToolIdx.clear();
+      this.callIdByToolIdx.clear();
       out.push(this.turnStartedEvent(ev.turn, ctx));
     }
     switch (ev.role) {
@@ -56,11 +60,17 @@ export class Eventizer {
         const name = ev.toolName;
         if (idx === undefined || !name) break;
         const key = `${ev.turn}:${idx}`;
-        if (this.announcedToolIdx.has(key)) break;
-        this.announcedToolIdx.add(key);
-        const callId = `tc-${++this.nextToolSeq}`;
-        this.preparingCallIds.push(callId);
-        out.push(this.toolPreparingEvent(ev.turn, callId, name));
+        if (!this.announcedToolIdx.has(key)) {
+          this.announcedToolIdx.add(key);
+          const callId = `tc-${++this.nextToolSeq}`;
+          this.preparingCallIds.push(callId);
+          this.callIdByToolIdx.set(key, callId);
+          out.push(this.toolPreparingEvent(ev.turn, callId, name));
+        }
+        const callId = this.callIdByToolIdx.get(key);
+        if (callId && ev.argumentsDelta) {
+          out.push(this.toolInputDeltaEvent(ev.turn, callId, name, ev.argumentsDelta));
+        }
         break;
       }
       case "assistant_final":
@@ -274,6 +284,23 @@ export class Eventizer {
       type: "tool.preparing",
       callId,
       name,
+    };
+  }
+
+  private toolInputDeltaEvent(
+    turn: number,
+    callId: string,
+    name: string,
+    delta: string,
+  ): ToolInputDeltaEvent {
+    return {
+      id: ++this.nextId,
+      ts: new Date().toISOString(),
+      turn,
+      type: "tool.input_delta",
+      callId,
+      name,
+      delta,
     };
   }
 
